@@ -393,6 +393,82 @@ export function selectSplitWoundTarget(trackIndex: number): void {
   });
 }
 
+function rerollCurseTarget(): void {
+  const state = getState();
+  if (!state?.currentCurse) return;
+
+  const available = getAvailableTrackIndices();
+  
+  if (available.length === 0) {
+    addLogEntry('No available tracks to curse');
+    updateState({ phase: 'curse-result', pendingCurseTargets: [] });
+    return;
+  }
+
+  // Check for permanent curse target (but allow redirect to bypass it)
+  // Note: Curse Redirect should allow re-rolling even with permanent target
+  
+  const targetRoll = roll();
+  const method = getCurseTargetMethod(targetRoll);
+  addLogEntry(`Curse Target Roll: ${targetRoll} → ${method}`);
+
+  if (method === 'two-targets') {
+    addLogEntry('Rolling for two targets');
+    const targets: number[] = [];
+    
+    for (let i = 0; i < 2; i++) {
+      const subRoll = roll();
+      const subMethod = getCurseTargetMethod(subRoll);
+      addLogEntry(`Target ${i + 1} Roll: ${subRoll} → ${subMethod}`);
+      
+      if (subMethod === 'two-targets') {
+        addLogEntry('Nested two-targets, defaulting to previous');
+        const fallbackTarget = resolveAutomaticTarget('previous');
+        if (fallbackTarget !== null) {
+          targets.push(fallbackTarget);
+        }
+      } else if (subMethod === 'loudest' || subMethod === 'quietest' || subMethod === 'player-choice') {
+        updateState({
+          phase: 'curse-target-select',
+          curseTargetMethod: subMethod,
+          curseTargetRoll: targetRoll,
+          pendingCurseTargets: targets,
+        });
+        return;
+      } else {
+        const autoTarget = resolveAutomaticTarget(subMethod);
+        if (autoTarget !== null) {
+          targets.push(autoTarget);
+          addLogEntry(`Target ${i + 1}: Track ${autoTarget + 1}`);
+        }
+      }
+    }
+    
+    updateState({ phase: 'curse-result', pendingCurseTargets: [...new Set(targets)] });
+    return;
+  }
+
+  if (method === 'loudest' || method === 'quietest' || method === 'player-choice') {
+    updateState({
+      phase: 'curse-target-select',
+      curseTargetMethod: method,
+      curseTargetRoll: targetRoll,
+      pendingCurseTargets: [],
+    });
+    return;
+  }
+
+  const autoTarget = resolveAutomaticTarget(method);
+  if (autoTarget !== null) {
+    addLogEntry(`Curse Target: Track ${autoTarget + 1}`);
+  }
+  
+  updateState({
+    phase: 'curse-result',
+    pendingCurseTargets: autoTarget !== null ? [autoTarget] : [],
+  });
+}
+
 function rollMixCurse(): void {
   const state = getState();
   if (!state) return;
@@ -823,9 +899,16 @@ export function usePowerUp(type: string): void {
 
   switch (type) {
     case 'redirect':
-      addLogEntry('Power-Up: Curse Redirect - Re-rolling curse target');
-      updates.currentCurse = null;
-      updates.phase = 'curse-check';
+      if (state.currentCurse?.type === 'Target Curse') {
+        addLogEntry('Power-Up: Curse Redirect - Re-rolling curse target');
+        // Keep the curse, just re-roll the target
+        updates.pendingCurseTargets = [];
+        updates.curseTargetMethod = null;
+        updates.curseTargetRoll = null;
+        updateState(updates);
+        rerollCurseTarget();
+        return;
+      }
       break;
     case 'lock':
       if (!state.usedRoomLock && state.tracks.length > 0) {
