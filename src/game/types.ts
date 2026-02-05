@@ -85,6 +85,7 @@ export interface GameState {
   painShiftActive: boolean;
   conditionalPowerUp: boolean;
   powerUpBlockedThisRoom: boolean;
+  oneLastBreathPending: boolean;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

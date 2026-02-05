@@ -109,6 +109,13 @@ export function rollCurseCheck(): void {
   const state = getState();
   if (!state) return;
 
+  // One Last Breath final room: guaranteed Target Curse
+  if (state.isLastRoom) {
+    addLogEntry('One Last Breath: Guaranteed Target Curse');
+    rollTargetCurse();
+    return;
+  }
+
   let r = roll();
   addLogEntry(`Curse Check Roll: ${r}`);
 
@@ -725,11 +732,19 @@ export function nextRoom(): void {
 
   let powerUps = state.powerUps;
   let powerUpBlockedThisRoom = false;
+  let isLastRoom = state.isLastRoom;
+  let oneLastBreathPending = state.oneLastBreathPending;
 
   if (state.conditionalPowerUp && !state.usedPowerUpThisRoom) {
     powerUps = Math.max(0, powerUps - 1);
     powerUpBlockedThisRoom = true;
     addLogEntry('Conditional Power-Up lost (not used this room)');
+  }
+
+  if (state.oneLastBreathPending) {
+    isLastRoom = true;
+    oneLastBreathPending = false;
+    addLogEntry('One Last Breath: This is the final room (guaranteed Target Curse)');
   }
 
   updateState({
@@ -749,6 +764,8 @@ export function nextRoom(): void {
     conditionalPowerUp: false,
     powerUps,
     powerUpBlockedThisRoom,
+    isLastRoom,
+    oneLastBreathPending,
   });
 }
 
@@ -804,9 +821,8 @@ export function usePowerUp(type: string): void {
       if (!state.usedOneLastBreath) {
         updates.usedOneLastBreath = true;
         updates.curses = state.curses.slice(0, -1);
-        updates.forcedRooms = state.forcedRooms + 1;
-        updates.isLastRoom = true;
-        addLogEntry('Power-Up: One Last Breath - Reversing last curse, forcing final room');
+        updates.oneLastBreathPending = true;
+        addLogEntry('Power-Up: One Last Breath - Reversing last curse, next room is the final room (Target Cursed)');
       }
       break;
   }
