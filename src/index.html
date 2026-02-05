@@ -150,29 +150,116 @@
         <p><strong>First:</strong> 01-20: Previous, 21-40: Oldest, 41-60: Loudest, 61-80: Quietest, 81-95: Choice, 96-100: Two Targets</p>
         <p><strong>Second:</strong> 01-32: Track Before, 33-66: That Track, 67-100: Track After</p>
 
-        <h3>Key Mutations</h3>
-        <ul>
-          <li>63-64: Roll twice, apply both</li>
-          <li>71-72: Abandon Track Type</li>
-          <li>85-86: 5-minute timer</li>
-          <li>93-94: Take Target Curse instead</li>
-          <li>97-98: Roll 80+ = delete Track</li>
-        </ul>
+        <h3>Mutations (d100)</h3>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Roll</th><th>Effect</th></tr>
+            <tr><td>01-02</td><td>Sum the Track to mono.</td></tr>
+            <tr><td>03-04</td><td>Track must be monophonic.</td></tr>
+            <tr><td>05-06</td><td>Limited to one octave or four slices.</td></tr>
+            <tr><td>07-08</td><td>Tracks/Slices must be fixed velocity.</td></tr>
+            <tr><td>09-10</td><td>Track must loop one bar over and over.</td></tr>
+            <tr><td>11-12</td><td>May only play on beats 1 and 3.</td></tr>
+            <tr><td>13-14</td><td>May only play on beats 2 and 4.</td></tr>
+            <tr><td>15-16</td><td>Must be played or sequenced in triplets.</td></tr>
+            <tr><td>17-18</td><td>Must not be quantized; must be played live.</td></tr>
+            <tr><td>19-20</td><td>Must be quantized to 1/16 steps.</td></tr>
+            <tr><td>21-22</td><td>Notes must be sequenced in step sequence.</td></tr>
+            <tr><td>23-24</td><td>Notes/slices can't be edited once performed or programmed.</td></tr>
+            <tr><td>25-26</td><td>Cannot be re-sequenced after Room resolves. Can only delete notes/slices.</td></tr>
+            <tr><td>27-28</td><td>Must be altered and resampled before processing.</td></tr>
+            <tr><td>29-30</td><td>Shorten envelope to be percussive.</td></tr>
+            <tr><td>31-32</td><td>Must use one sound or note only.</td></tr>
+            <tr><td>33-34</td><td>Cannot use the same note or slice twice.</td></tr>
+            <tr><td>35-36</td><td>Notes must be played in strict order.</td></tr>
+            <tr><td>37-38</td><td>Every note must repeat once before another may be played.</td></tr>
+            <tr><td>39-40</td><td>There can be no silence in the Track.</td></tr>
+            <tr><td>41-42</td><td>Must pass through reverb before composing.</td></tr>
+            <tr><td>43-44</td><td>Must pass through delay before composing.</td></tr>
+            <tr><td>45-46</td><td>May not use effects.</td></tr>
+            <tr><td>47-48</td><td>May use only one effect.</td></tr>
+            <tr><td>49-50</td><td>Must be side-chained to the previous Track.</td></tr>
+            <tr><td>51-52</td><td>Must be noise-gated.</td></tr>
+            <tr><td>53-54</td><td>Must pass through a low-pass filter (1 kHz).</td></tr>
+            <tr><td>55-56</td><td>Must be detuned slightly (±10 cents).</td></tr>
+            <tr><td>57-58</td><td>You can't audition sounds. Pick blind before composing.</td></tr>
+            <tr><td>59-60</td><td>All effects must be added and tuned before composing.</td></tr>
+            <tr><td>61-62</td><td>Mute all rhythms and the metronome for the duration of the Room.</td></tr>
+            <tr class="highlight"><td>63-64</td><td>Roll twice. Apply both Mutations.</td></tr>
+            <tr><td>65-66</td><td>Only apply effects that have already been used.</td></tr>
+            <tr><td>67-68</td><td>Must include one deliberate wrong note.</td></tr>
+            <tr><td>69-70</td><td>No Mutation.</td></tr>
+            <tr class="highlight"><td>71-72</td><td>Track must abandon its intended Track Type.</td></tr>
+            <tr><td>73-74</td><td>Solo this Track for the duration of the Room.</td></tr>
+            <tr><td>75-76</td><td>Only use effects that haven't been used.</td></tr>
+            <tr><td>77-78</td><td>Once Room is finalized, volume is locked.</td></tr>
+            <tr><td>79-80</td><td>No Mutation.</td></tr>
+            <tr class="highlight"><td>81-82</td><td>Purpose of Track changes to match previous Room. If Room One, re-roll.</td></tr>
+            <tr class="highlight"><td>83-84</td><td>Repeat last Room's Mutation. If first Room, no Mutation.</td></tr>
+            <tr class="highlight"><td>85-86</td><td>Once you begin composing, the Room finalizes in five minutes.</td></tr>
+            <tr><td>87-88</td><td>Must control same amount of notes as previous Track.</td></tr>
+            <tr><td>89-90</td><td>Compose Track while muted. Select sounds/patches before unmuting. Unmute ends Room.</td></tr>
+            <tr class="highlight"><td>91-92</td><td>Each note requires deleting one note from another Track. If Room One, no Mutation.</td></tr>
+            <tr class="highlight"><td>93-94</td><td>Take a Target Curse instead.</td></tr>
+            <tr><td>95-96</td><td>Once a note or slice is placed, it can't be moved—only deleted.</td></tr>
+            <tr class="highlight"><td>97-98</td><td>Roll Mutations 80 or higher = delete Track. If Room One, no Mutation.</td></tr>
+            <tr><td>99-100</td><td>No Mutation.</td></tr>
+          </table>
+        </div>
 
-        <h3>Key Target Curses</h3>
-        <ul>
-          <li>33-36: Force Room + Double Mutation</li>
-          <li>45-48: Track becomes permanent curse target</li>
-          <li>57-60: Delete Track</li>
-          <li>93-96: Apply last Curse to another Track</li>
-          <li>97-100: Re-roll twice</li>
-        </ul>
+        <h3>Target Curses (d100)</h3>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Roll</th><th>Effect</th></tr>
+            <tr><td>01-04</td><td>Mute until end of Run.</td></tr>
+            <tr><td>05-08</td><td>Collapse to mono.</td></tr>
+            <tr><td>09-12</td><td>1/32 quantize.</td></tr>
+            <tr><td>13-16</td><td>Pan hard left or right.</td></tr>
+            <tr><td>17-20</td><td>Track must remain constant in final arrangement.</td></tr>
+            <tr><td>21-24</td><td>Resample, Chop, Reverse, Re-sequence.</td></tr>
+            <tr><td>25-28</td><td>Pitch shift one octave.</td></tr>
+            <tr><td>29-32</td><td>Apply Flanger or Chorus.</td></tr>
+            <tr class="highlight"><td>33-36</td><td>Force a Room. Next Room will have two Mutations.</td></tr>
+            <tr><td>37-40</td><td>Turn Track down -6 dB.</td></tr>
+            <tr><td>41-44</td><td>Strip all effects.</td></tr>
+            <tr class="highlight"><td>45-48</td><td>This Track is now target of all future Curses until end of Run.</td></tr>
+            <tr><td>49-52</td><td>Over-compress.</td></tr>
+            <tr><td>53-56</td><td>When discarding Run, roll d100. On 51+, force another Room.</td></tr>
+            <tr class="highlight"><td>57-60</td><td>Delete Track. You can't replace its role.</td></tr>
+            <tr><td>61-64</td><td>No re-sequencing or volume change.</td></tr>
+            <tr><td>65-68</td><td>Remove half the notes/chops.</td></tr>
+            <tr><td>69-72</td><td>Loop a short segment.</td></tr>
+            <tr><td>73-76</td><td>Erase all notes/slices except first and last.</td></tr>
+            <tr><td>77-80</td><td>This Track can't loop back to back.</td></tr>
+            <tr><td>81-84</td><td>Delete the first bar of the Track.</td></tr>
+            <tr><td>85-88</td><td>Delete the last bar of the Track.</td></tr>
+            <tr><td>89-92</td><td>Cannot edit Track rest of Run.</td></tr>
+            <tr class="highlight"><td>93-96</td><td>Apply last Curse to another Track of your choosing. If first Curse, ignore.</td></tr>
+            <tr class="highlight"><td>97-100</td><td>Re-roll twice.</td></tr>
+          </table>
+        </div>
 
-        <h3>Key Mix Curses</h3>
-        <ul>
-          <li>01: This is the last Room</li>
-          <li>92-100: Roll three Target Curses</li>
-        </ul>
+        <h3>Mix Curses (d100, only on 99-100 curse check)</h3>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Roll</th><th>Effect</th></tr>
+            <tr class="highlight"><td>01</td><td>This is the last Room. If Room One or Two, re-roll.</td></tr>
+            <tr><td>02-07</td><td>Delay on Entire Mix.</td></tr>
+            <tr><td>08-14</td><td>No quantize for rest of Run. All notes performed live.</td></tr>
+            <tr><td>15-21</td><td>1/32 quantize for rest of Run.</td></tr>
+            <tr><td>22-28</td><td>Decrease BPM by 10.</td></tr>
+            <tr><td>29-35</td><td>Increase BPM by 10.</td></tr>
+            <tr><td>36-42</td><td>Reverb on Entire Mix.</td></tr>
+            <tr><td>43-49</td><td>Resample Entire Mix. Disable all other Tracks.</td></tr>
+            <tr><td>50-56</td><td>Tracks can no longer resample unless instructed by Curse/Mutation.</td></tr>
+            <tr><td>57-63</td><td>Adjust your Monitoring. Cannot change for rest of Run.</td></tr>
+            <tr><td>64-70</td><td>You cannot adjust volume of previous Tracks.</td></tr>
+            <tr><td>71-77</td><td>Automation is now banned.</td></tr>
+            <tr><td>78-84</td><td>Mix must be summed to mono.</td></tr>
+            <tr><td>85-91</td><td>Only previously used effects can be used until end of Run.</td></tr>
+            <tr class="highlight"><td>92-100</td><td>Roll three Target Curses.</td></tr>
+          </table>
+        </div>
 
         <h3>End Condition</h3>
         <p>Run ends when you declare it over with no forced Rooms. If rules followed, you win!</p>

@@ -12,7 +12,8 @@ export type Phase =
   | 'compose'
   | 'powerup-roll'
   | 'next-room'
-  | 'room-lock-select';
+  | 'room-lock-select'
+  | 'split-wound-select';
 
 export type CurseTargetMethod = 
   | 'previous'
@@ -86,6 +87,7 @@ export interface GameState {
   conditionalPowerUp: boolean;
   powerUpBlockedThisRoom: boolean;
   oneLastBreathPending: boolean;
+  splitWoundActive: boolean;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

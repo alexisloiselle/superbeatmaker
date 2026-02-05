@@ -363,6 +363,46 @@ select {
   margin-bottom: 0.5rem;
 }
 
+.modal-body .table-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.modal-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.modal-body th,
+.modal-body td {
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-body th {
+  background: var(--surface2);
+  position: sticky;
+  top: 0;
+  font-weight: bold;
+}
+
+.modal-body tr:last-child td {
+  border-bottom: none;
+}
+
+.modal-body tr.highlight {
+  background: rgba(255, 107, 53, 0.15);
+}
+
+.modal-body tr.highlight td {
+  color: var(--accent);
+}
+
 @media (max-width: 600px) {
   .container {
     padding: 0.5rem;

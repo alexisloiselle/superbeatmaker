@@ -62,6 +62,7 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     conditionalPowerUp: false,
     powerUpBlockedThisRoom: false,
     oneLastBreathPending: false,
+    splitWoundActive: false,
   };
 }
 

@@ -381,6 +381,18 @@ export function selectApplyLastCurseTarget(trackIndex: number): void {
   });
 }
 
+export function selectSplitWoundTarget(trackIndex: number): void {
+  const state = getState();
+  if (!state?.currentCurse) return;
+
+  addLogEntry(`Split the Wound: Also applying half-strength curse to Track ${trackIndex + 1}`);
+
+  updateState({
+    phase: 'curse-result',
+    pendingCurseTargets: [...state.pendingCurseTargets, trackIndex],
+  });
+}
+
 function rollMixCurse(): void {
   const state = getState();
   if (!state) return;
@@ -427,17 +439,24 @@ export function acceptCurse(): void {
 
   if (state.currentCurse.type === 'Target Curse') {
     const targetEntry = curseEntry as TargetCurseEntry;
+    const isHalfStrength = state.splitWoundActive;
+    const curseText = isHalfStrength 
+      ? `${state.currentCurse.effect} (Half Strength)`
+      : state.currentCurse.effect;
     
     for (const targetIdx of state.pendingCurseTargets) {
       if (targetIdx >= 0 && targetIdx < tracks.length) {
+        // Half strength curses don't delete tracks
+        const shouldDelete = targetEntry.mechanics?.deleteTrack && !isHalfStrength;
+        
         tracks[targetIdx] = {
           ...tracks[targetIdx],
-          curses: [...tracks[targetIdx].curses, state.currentCurse.effect],
-          deleted: targetEntry.mechanics?.deleteTrack ? true : tracks[targetIdx].deleted,
+          curses: [...tracks[targetIdx].curses, curseText],
+          deleted: shouldDelete ? true : tracks[targetIdx].deleted,
         };
-        addLogEntry(`Curse applied to Track ${targetIdx + 1}`);
+        addLogEntry(`Curse applied to Track ${targetIdx + 1}${isHalfStrength ? ' (Half Strength)' : ''}`);
         
-        if (targetEntry.mechanics?.becomesCurseTarget) {
+        if (targetEntry.mechanics?.becomesCurseTarget && !isHalfStrength) {
           curseTargetTrackIndex = targetIdx;
           addLogEntry(`Track ${targetIdx + 1} is now the target of all future curses`);
         }
@@ -504,6 +523,7 @@ export function acceptCurse(): void {
     pendingCurseTargets: [],
     pendingTargetCurseRolls: remainingRolls,
     painShiftActive: remainingRolls > 0 ? state.painShiftActive : false,
+    splitWoundActive: false,
     ...(nextPhase ? { phase: nextPhase } : {}),
   });
 
@@ -537,11 +557,13 @@ function rollSingleMutation(mode: string, room: number, isSecondMutation = false
 
   if (entry.mechanics?.roomOneRule && room === 1) {
     if (entry.mechanics.roomOneRule === 'reroll') {
+      addLogEntry(`Mutation Roll: ${r} → ${entry.text}`);
       addLogEntry('Room 1: Re-rolling mutation');
       return rollSingleMutation(mode, room, isSecondMutation);
     }
     if (entry.mechanics.roomOneRule === 'no-mutation') {
-      addLogEntry('Room 1: No mutation');
+      addLogEntry(`Mutation Roll: ${r} → ${entry.text}`);
+      addLogEntry('Room 1: No mutation applies');
       return { roll: r, effect: 'No Mutation.' };
     }
   }
@@ -815,7 +837,23 @@ export function usePowerUp(type: string): void {
       rollTargetCurse();
       return;
     case 'split':
-      addLogEntry('Power-Up: Split the Wound - Curse applied at half strength');
+      if (state.currentCurse?.type === 'Target Curse' && state.pendingCurseTargets.length > 0) {
+        const availableTracks = state.tracks
+          .map((t, i) => i)
+          .filter(i => !state.tracks[i].deleted && i !== state.roomLockTrack && !state.pendingCurseTargets.includes(i));
+        
+        if (availableTracks.length > 0) {
+          addLogEntry('Power-Up: Split the Wound - Select second track for half-strength curse');
+          updates.splitWoundActive = true;
+          updates.phase = 'split-wound-select';
+          updateState(updates);
+          return;
+        } else {
+          addLogEntry('Power-Up: Split the Wound - No other tracks available, curse applied at half strength to original target');
+        }
+      } else {
+        addLogEntry('Power-Up: Split the Wound - Curse applied at half strength');
+      }
       break;
     case 'breath':
       if (!state.usedOneLastBreath) {

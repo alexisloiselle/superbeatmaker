@@ -8,6 +8,7 @@ import {
   acceptCurse,
   selectCurseTarget,
   selectApplyLastCurseTarget,
+  selectSplitWoundTarget,
   selectRoomLockTarget,
   rollMutation,
   acceptMutation,
@@ -399,6 +400,34 @@ function renderRoom(): void {
         btn.onclick = () => {
           const index = parseInt(btn.dataset.index || '0', 10);
           selectRoomLockTarget(index);
+          render();
+        };
+      });
+      break;
+
+    case 'split-wound-select':
+      const splitAvailableTracks = state.tracks
+        .map((t, i) => ({ track: t, index: i }))
+        .filter(({ track, index }) => !track.deleted && index !== state.roomLockTrack && !state.pendingCurseTargets.includes(index));
+      
+      content.innerHTML = `
+        <div class="roll-result">
+          <div class="roll-text">Split the Wound: ${state.currentCurse?.effect}</div>
+          <p class="muted" style="margin-top: 0.5rem;">Original target: Track ${state.pendingCurseTargets.map(i => i + 1).join(', ')}</p>
+        </div>
+        <h3 style="margin-top: 1rem;">Select second track for half-strength curse</h3>
+        <div class="track-select-list">
+          ${splitAvailableTracks.map(({ track, index }) => `
+            <button class="track-select-btn" data-index="${index}">
+              Room ${track.room}: ${track.type}
+            </button>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll<HTMLButtonElement>('.track-select-btn').forEach(btn => {
+        btn.onclick = () => {
+          const index = parseInt(btn.dataset.index || '0', 10);
+          selectSplitWoundTarget(index);
           render();
         };
       });
