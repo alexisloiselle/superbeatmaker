@@ -237,20 +237,25 @@ export function acceptCurse(): void {
   });
 }
 
-function rollSingleMutation(mode: string, room: number, isSecondMutation = false): string {
+interface MutationRollResult {
+  roll: number;
+  effect: string;
+}
+
+function rollSingleMutation(mode: string, room: number, isSecondMutation = false): MutationRollResult {
   const state = getState();
-  const r = roll();
+  let r = roll();
   let entry = getMutationEntry(r);
 
   if (mode === 'casual' && r >= 90) {
-    const newRoll = roll(89);
-    entry = getMutationEntry(newRoll);
+    r = roll(89);
+    entry = getMutationEntry(r);
     addLogEntry('Casual Mode: Re-rolling high mutation');
   }
 
   if (mode === 'hard' && entry.mechanics?.noEffect) {
-    const newRoll = roll();
-    entry = getMutationEntry(newRoll);
+    r = roll();
+    entry = getMutationEntry(r);
     addLogEntry('Hard Mode: Re-rolling no-effect mutation');
   }
 
@@ -261,15 +266,15 @@ function rollSingleMutation(mode: string, room: number, isSecondMutation = false
     }
     if (entry.mechanics.roomOneRule === 'no-mutation') {
       addLogEntry('Room 1: No mutation');
-      return 'No Mutation.';
+      return { roll: r, effect: 'No Mutation.' };
     }
   }
 
   if (entry.mechanics?.rollTwice) {
     addLogEntry('Rolling twice for mutations');
-    const effect1 = rollSingleMutation(mode, room, false);
-    const effect2 = rollSingleMutation(mode, room, true);
-    return `[${effect1}] AND [${effect2}]`;
+    const result1 = rollSingleMutation(mode, room, false);
+    const result2 = rollSingleMutation(mode, room, true);
+    return { roll: r, effect: `[${result1.effect}] AND [${result2.effect}]` };
   }
 
   if (entry.mechanics?.copyPreviousTrackType && state) {
@@ -285,11 +290,11 @@ function rollSingleMutation(mode: string, room: number, isSecondMutation = false
       if (previousTrack.mutations.length > 0) {
         const lastMutation = previousTrack.mutations[previousTrack.mutations.length - 1];
         addLogEntry(`Repeating last mutation: ${lastMutation}`);
-        return lastMutation;
+        return { roll: r, effect: lastMutation };
       }
     }
     addLogEntry('No previous mutation to repeat');
-    return 'No Mutation.';
+    return { roll: r, effect: 'No Mutation.' };
   }
 
   if (entry.mechanics?.deleteIfHighRoll) {
@@ -301,7 +306,7 @@ function rollSingleMutation(mode: string, room: number, isSecondMutation = false
   }
 
   addLogEntry(`Mutation Roll: ${r} → ${entry.text}`);
-  return entry.text;
+  return { roll: r, effect: entry.text };
 }
 
 export function rollMutation(): void {
@@ -310,17 +315,17 @@ export function rollMutation(): void {
 
   const needsDoubleMutation = state.doubleMutationNextRoom;
   
-  let effect: string;
+  let result: MutationRollResult;
   if (needsDoubleMutation) {
     addLogEntry('Double mutation room!');
-    const effect1 = rollSingleMutation(state.mode, state.room, false);
-    const effect2 = rollSingleMutation(state.mode, state.room, true);
-    effect = `[${effect1}] AND [${effect2}]`;
+    const result1 = rollSingleMutation(state.mode, state.room, false);
+    const result2 = rollSingleMutation(state.mode, state.room, true);
+    result = { roll: result1.roll, effect: `[${result1.effect}] AND [${result2.effect}]` };
   } else {
-    effect = rollSingleMutation(state.mode, state.room);
+    result = rollSingleMutation(state.mode, state.room);
   }
   
-  const mutation: Mutation = { roll: 0, effect };
+  const mutation: Mutation = { roll: result.roll, effect: result.effect };
   
   updateState({
     currentMutation: mutation,
