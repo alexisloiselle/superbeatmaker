@@ -44,9 +44,16 @@ export function rollTrackType(): void {
   const type = getFromTable(r, TRACK_TYPES);
   
   addLogEntry(`Track Type Roll: ${r} → ${type}`);
+  
+  // No curse check on first room
+  const nextPhase = state.room === 1 ? 'mutation' : 'curse-check';
+  if (state.room === 1) {
+    addLogEntry('Room 1: Skipping curse check');
+  }
+  
   updateState({
     currentTrack: createTrack(state.room, type),
-    phase: 'curse-check',
+    phase: nextPhase,
   });
 }
 
@@ -55,9 +62,16 @@ export function selectTrackType(type: string): void {
   if (!state) return;
 
   addLogEntry(`Track Type: ${type} (manual)`);
+  
+  // No curse check on first room
+  const nextPhase = state.room === 1 ? 'mutation' : 'curse-check';
+  if (state.room === 1) {
+    addLogEntry('Room 1: Skipping curse check');
+  }
+  
   updateState({
     currentTrack: createTrack(state.room, type),
-    phase: 'curse-check',
+    phase: nextPhase,
   });
 }
 
