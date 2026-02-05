@@ -125,10 +125,8 @@ function renderTimer(): void {
     timerEl.classList.remove('hidden');
     updateTimerDisplay();
     
-    // Clear existing interval
     if (timerInterval) clearInterval(timerInterval);
     
-    // Update every second
     timerInterval = setInterval(() => {
       updateTimerDisplay();
     }, 1000);
@@ -197,7 +195,6 @@ function renderRoom(): void {
       break;
 
     case 'track-type-reselect':
-      // Must select a DIFFERENT track type (abandon original)
       const currentType = state.currentTrack?.type;
       const otherTypes = TRACK_TYPES.filter(([, , name]) => name !== currentType);
       content.innerHTML = `
@@ -336,7 +333,6 @@ export function endRun(): void {
   const state = getState();
   if (!state) return;
 
-  // Clear timer
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;

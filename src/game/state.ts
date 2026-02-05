@@ -50,7 +50,6 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     seededRooms: null,
     casualFirstCurseIgnored: false,
     isLastRoom: false,
-    // New state for mechanics
     doubleMutationNextRoom: false,
     curseTargetTrackIndex: null,
     timerEndTime: null,
@@ -62,7 +61,7 @@ export function createTrack(room: number, type: string): Track {
   return {
     room,
     type,
-    mutations: [],  // Changed to array
+    mutations: [],
     curses: [],
     deleted: false,
   };

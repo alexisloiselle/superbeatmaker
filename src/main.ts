@@ -16,7 +16,6 @@ function startRun(): void {
   const state = createInitialState(mode, manualTrackType);
   setState(state);
 
-  // Seeded mode setup
   if (mode === 'seeded') {
     const numRooms = roll(10) || 1;
     const seededRooms = [];
@@ -71,7 +70,6 @@ function newRun(): void {
 }
 
 function init(): void {
-  // Setup event listeners
   onClick('start-run', startRun);
   onClick('continue-run', continueRun);
   onClick('import-btn', handleImport);
@@ -86,13 +84,11 @@ function init(): void {
   setupPowerUpButtons();
   setupExportButton();
 
-  // Check for saved game
   if (hasSavedGame()) {
     setDisabled('continue-run', false);
   }
 }
 
-// Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
