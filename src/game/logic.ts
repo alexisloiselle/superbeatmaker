@@ -188,40 +188,46 @@ export function acceptCurse(): void {
   });
 }
 
-export function rollMutation(): void {
-  const state = getState();
-  if (!state) return;
-
+function rollSingleMutation(mode: string, room: number): string {
   let r = roll();
   let effect = getMutation(r);
 
   // Casual mode: re-roll 90-100
-  if (state.mode === 'casual' && r >= 90) {
+  if (mode === 'casual' && r >= 90) {
     r = roll(89);
     effect = getMutation(r);
     addLogEntry('Casual Mode: Re-rolling high mutation');
   }
 
   // Hard mode: re-roll no-effect mutations
-  if (state.mode === 'hard' && effect.includes('No Mutation')) {
+  if (mode === 'hard' && effect.includes('No Mutation')) {
     r = roll();
     effect = getMutation(r);
     addLogEntry('Hard Mode: Re-rolling no-effect mutation');
   }
 
   // Handle special mutations
-  if (effect.includes('Room One') && state.room === 1) {
-    effect = 'No Mutation.';
+  if (effect.includes('Room One') && room === 1) {
+    return 'No Mutation.';
   }
 
+  // Recursive handling of "Roll twice"
   if (effect.includes('Roll twice')) {
-    const r2 = roll();
-    const effect2 = getMutation(r2);
-    effect = `${effect} (${r}: ${getMutation(r)}) AND (${r2}: ${effect2})`;
+    const effect1 = rollSingleMutation(mode, room);
+    const effect2 = rollSingleMutation(mode, room);
+    return `[${effect1}] AND [${effect2}]`;
   }
 
-  const mutation: Mutation = { roll: r, effect };
   addLogEntry(`Mutation Roll: ${r} → ${effect}`);
+  return effect;
+}
+
+export function rollMutation(): void {
+  const state = getState();
+  if (!state) return;
+
+  const effect = rollSingleMutation(state.mode, state.room);
+  const mutation: Mutation = { roll: 0, effect };
   
   updateState({
     currentMutation: mutation,
