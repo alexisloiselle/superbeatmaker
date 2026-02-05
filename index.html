@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Beatmaker</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #1a1a1a;
+      --surface2: #252525;
+      --border: #333;
+      --text: #e0e0e0;
+      --muted: #888;
+      --accent: #ff6b35;
+      --danger: #e53935;
+      --success: #43a047;
+      --info: #1e88e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 1rem; }
+    h1 { font-size: 1.5rem; text-align: center; margin-bottom: 1rem; color: var(--accent); }
+    h2 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    h3 { font-size: 0.95rem; color: var(--muted); margin-bottom: 0.5rem; }
+    
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: var(--surface2); border: 1px solid var(--border); }
+    button.danger { background: var(--danger); }
+    button.small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    
+    select, input {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    select { width: 100%; }
+    
+    .flex { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .grid { display: grid; gap: 0.5rem; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      background: var(--surface2);
+      word-break: break-word;
+    }
+    .badge.curse { background: var(--danger); color: #fff; }
+    .badge.mutation { background: var(--info); color: #fff; }
+    .badge.powerup { background: var(--success); color: #fff; }
+    
+    .track-item {
+      background: var(--surface2);
+      padding: 0.75rem;
+      border-radius: 4px;
+      border-left: 3px solid var(--accent);
+    }
+    .track-item.cursed { border-left-color: var(--danger); }
+    .track-item .track-header { font-weight: bold; margin-bottom: 0.25rem; }
+    .track-item .track-effects { font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    
+    .roll-result {
+      text-align: center;
+      padding: 1rem;
+      background: var(--surface2);
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+    .roll-result .roll-number { font-size: 2rem; font-weight: bold; color: var(--accent); }
+    .roll-result .roll-text { margin-top: 0.5rem; }
+    
+    .log { max-height: 200px; overflow-y: auto; font-size: 0.85rem; }
+    .log-entry { padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+    .log-entry:last-child { border-bottom: none; }
+    
+    .hidden { display: none !important; }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .checkbox-label input { width: auto; }
+    
+    .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.5rem; }
+    .tag {
+      padding: 0.2rem 0.5rem;
+      background: var(--surface2);
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .tag.active { background: var(--accent); }
+    
+    #import-input { display: none; }
+    
+    @media (max-width: 600px) {
+      .container { padding: 0.5rem; }
+      h1 { font-size: 1.25rem; }
+      .card { padding: 0.75rem; }
+      button { padding: 0.4rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Super Beatmaker</h1>
+    
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+      <div class="card">
+        <h2>New Run</h2>
+        <div class="grid" style="margin-top: 0.5rem;">
+          <label>
+            Mode
+            <select id="mode-select">
+              <option value="normal">Normal</option>
+              <option value="hard">Hard Mode</option>
+              <option value="casual">Casual Mode</option>
+              <option value="cursed">Cursed Mode</option>
+              <option value="seeded">Seeded Run</option>
+              <option value="quick">Quick Room</option>
+            </select>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="manual-track-type">
+            Manual Track Type Selection
+          </label>
+          <button id="start-run">Enter the Dungeon</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2>Continue Run</h2>
+        <div class="flex">
+          <button id="continue-run" class="secondary" disabled>Continue Saved Run</button>
+          <button id="import-btn" class="secondary">Import</button>
+          <input type="file" id="import-input" accept=".json">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden">
+      <div class="card">
+        <div class="flex-between">
+          <div>
+            <span class="badge">Room <span id="room-number">1</span></span>
+            <span class="badge powerup">Power-Ups: <span id="powerup-count">0</span></span>
+            <span class="badge" id="mode-badge">Normal</span>
+          </div>
+          <div class="flex">
+            <button id="export-btn" class="small secondary">Export</button>
+            <button id="end-run" class="small danger">End Run</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Current Room -->
+      <div id="room-panel" class="card">
+        <h2>Room <span id="current-room">1</span></h2>
+        <div id="room-content"></div>
+      </div>
+      
+      <!-- Power-Ups Panel -->
+      <div id="powerup-panel" class="card hidden">
+        <h2>Use Power-Up</h2>
+        <div class="grid grid-2">
+          <button class="secondary powerup-btn" data-type="redirect">Curse Redirect</button>
+          <button class="secondary powerup-btn" data-type="lock">Room Lock</button>
+          <button class="secondary powerup-btn" data-type="painshift">Pain Shift</button>
+          <button class="secondary powerup-btn" data-type="split">Split the Wound</button>
+          <button class="secondary powerup-btn" data-type="breath">One Last Breath</button>
+        </div>
+        <button id="skip-powerup" class="secondary" style="margin-top: 0.5rem; width: 100%;">Skip</button>
+      </div>
+      
+      <!-- Tracks List -->
+      <div class="card">
+        <h2>Tracks</h2>
+        <div id="tracks-list" class="grid"></div>
+        <p id="no-tracks" class="muted" style="color: var(--muted);">No tracks yet.</p>
+      </div>
+      
+      <!-- Log -->
+      <div class="card">
+        <h2>Run Log</h2>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+    
+    <!-- End Screen -->
+    <div id="end-screen" class="hidden">
+      <div class="card">
+        <h2>Run Complete</h2>
+        <div id="run-summary"></div>
+        <h3 style="margin-top: 1rem;">Tags</h3>
+        <div id="run-tags" class="tags"></div>
+        <div class="flex" style="margin-top: 1rem;">
+          <button id="new-run">New Run</button>
+          <button id="export-final" class="secondary">Export Run</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Game Data
+    const TRACK_TYPES = [
+      [1, 7, "One-Shot Drums"], [8, 14, "Drum Loop"], [15, 21, "Percussion"],
+      [22, 28, "Bass"], [29, 35, "Lead"], [36, 42, "Chord"], [43, 49, "Pad"],
+      [50, 56, "Piano / Keys"], [57, 63, "Sample"], [64, 70, "FX or Texture"],
+      [71, 77, "Arp / Sequence"], [78, 84, "Vocal / Voice"], [85, 91, "Acoustic Instrument"],
+      [92, 98, "Electric Instrument"], [99, 100, "Player's Choice"]
+    ];
+
+    const MUTATIONS = {
+      1: "Sum the Track to mono.", 3: "Track must be monophonic.",
+      5: "Limited to one octave or four slices.", 7: "Tracks/Slices must be fixed velocity.",
+      9: "Track must loop one bar over and over.", 11: "May only play on beats 1 and 3.",
+      13: "May only play on beats 2 and 4.", 15: "Must be played or sequenced in triplets.",
+      17: "Must not be quantized; must be played live.", 19: "Must be quantized to 1/16 steps.",
+      21: "Notes must be sequenced in step sequence.",
+      23: "Notes/slices can't be edited once performed or programmed.",
+      25: "Cannot be re-sequenced after Room resolves. Can only delete notes/slices.",
+      27: "Must be altered and resampled before processing.",
+      29: "Shorten envelope to be percussive.", 31: "Must use one sound or note only.",
+      33: "Cannot use the same note or slice twice.", 35: "Notes must be played in strict order.",
+      37: "Every note must repeat once before another may be played.",
+      39: "There can be no silence in the Track.", 41: "Must pass through reverb before composing.",
+      43: "Must pass through delay before composing.", 45: "May not use effects.",
+      47: "May use only one effect.", 49: "Must be side-chained to the previous Track.",
+      51: "Must be noise-gated.", 53: "Must pass through a low-pass filter (1 kHz).",
+      55: "Must be detuned slightly (±10 cents).",
+      57: "You can't audition sounds. Pick blind before composing.",
+      59: "All effects must be added and tuned before composing.",
+      61: "Mute all rhythms and the metronome for the duration of the Room.",
+      63: "Roll twice. Apply both Mutations.", 65: "Only apply effects that have already been used.",
+      67: "Must include one deliberate wrong note.", 69: "No Mutation.",
+      71: "Track must abandon its intended Track Type.",
+      73: "Solo this Track for the duration of the Room.",
+      75: "Only use effects that haven't been used.", 77: "Once Room is finalized, volume is locked.",
+      79: "No Mutation.",
+      81: "Purpose of Track changes to match previous Room. If Room One, re-roll.",
+      83: "Repeat last Room's Mutation. If first Room, no Mutation.",
+      85: "Once you begin composing, the Room finalizes in three minutes.",
+      87: "Must control same amount of notes as previous Track.",
+      89: "Compose Track while muted. Select sounds/patches before unmuting. Unmute ends Room.",
+      91: "Each note requires deleting one note from another Track. If Room One, no Mutation.",
+      93: "Take a Target Curse instead.",
+      95: "Once a note or slice is placed, it can't be moved—only deleted.",
+      97: "Roll Mutations 80 or higher = delete Track. If Room One, no Mutation.",
+      99: "No Mutation."
+    };
+
+    const TARGET_CURSES = {
+      1: "Mute until end of Run.", 5: "Collapse to mono.", 9: "1/32 quantize.",
+      13: "Pan hard left or right.", 17: "Track must remain constant in final arrangement.",
+      21: "Resample, Chop, Reverse, Re-sequence.", 25: "Pitch shift one octave.",
+      29: "Apply Flanger or Chorus.", 33: "Force a Room. Next Room will have two Mutations.",
+      37: "Turn Track down -6 dB.", 41: "Strip all effects.",
+      45: "This Track is now target of all future Curses until end of Run.",
+      49: "Over-compress.",
+      53: "When discarding Run, roll d100. On 51+, force another Room.",
+      57: "Delete Track. You can't replace its role.", 61: "No re-sequencing or volume change.",
+      65: "Remove half the notes/chops.", 69: "Loop a short segment.",
+      73: "Erase all notes/slices except first and last.",
+      77: "This Track can't loop back to back.", 81: "Delete the first bar of the Track.",
+      85: "Delete the last bar of the Track.", 89: "Cannot edit Track rest of Run.",
+      93: "Apply last Curse to another Track of your choosing. If first Curse, ignore.",
+      97: "Re-roll twice."
+    };
+
+    const MIX_CURSES = {
+      1: "This is the last Room. If Room One or Two, re-roll.",
+      2: "Delay on Entire Mix.", 8: "No quantize for rest of Run. All notes performed live.",
+      15: "1/32 quantize for rest of Run.", 22: "Decrease BPM by 10.", 29: "Increase BPM by 10.",
+      36: "Reverb on Entire Mix.", 43: "Resample Entire Mix. Disable all other Tracks.",
+      50: "Tracks can no longer resample unless instructed by Curse/Mutation.",
+      57: "Adjust your Monitoring. Cannot change for rest of Run.",
+      64: "You cannot adjust volume of previous Tracks.", 71: "Automation is now banned.",
+      78: "Mix must be summed to mono.",
+      85: "Only previously used effects can be used until end of Run.",
+      92: "Roll three Target Curses."
+    };
+
+    const CURSE_TARGETS_FIRST = [
+      [1, 20, "Previous Track"], [21, 40, "Oldest Track"], [41, 60, "Loudest Track"],
+      [61, 80, "Quietest Track"], [81, 95, "Player's Choice"], [96, 100, "Roll again for two Targets"]
+    ];
+
+    const RUN_TAGS = [
+      ["Tragic", "The Run collapsed in the last Room."],
+      ["Cursed", "Survived 3 or more Curses."],
+      ["Compromised", "A foundational Track was deleted or irreversibly damaged."],
+      ["Chaotic", "You never had control of the Run."],
+      ["Unlikely", "An unexpected Track became the foundation of the Run."],
+      ["Indebted", "At least 2 Forced Rooms."],
+      ["Accidental", "Things worked out and you don't know why."],
+      ["Clean", "Your Run resolved with little tension."],
+      ["Unfinished", "Beat doesn't feel complete."],
+      ["Adapter", "You went with the flow."],
+      ["Cornered", "You repeatedly worked around limitations rather than through them."],
+      ["Overextended", "You went too far."],
+      ["Resilient", "All hope was lost at one point."],
+      ["Hollow", "The Run was completed… but at what cost?"]
+    ];
+
+    // State
+    let state = null;
+
+    function roll(max = 100) {
+      return Math.floor(Math.random() * max) + 1;
+    }
+
+    function getFromTable(roll, table) {
+      for (const [min, max, value] of table) {
+        if (roll >= min && roll <= max) return value;
+      }
+      return table[table.length - 1][2];
+    }
+
+    function getMutation(roll) {
+      const keys = Object.keys(MUTATIONS).map(Number).sort((a, b) => a - b);
+      for (let i = 0; i < keys.length; i++) {
+        const nextKey = keys[i + 1] || 101;
+        if (roll >= keys[i] && roll < nextKey) return MUTATIONS[keys[i]];
+      }
+      return "No Mutation.";
+    }
+
+    function getTargetCurse(roll) {
+      const keys = Object.keys(TARGET_CURSES).map(Number).sort((a, b) => a - b);
+      for (let i = 0; i < keys.length; i++) {
+        const nextKey = keys[i + 1] || 101;
+        if (roll >= keys[i] && roll < nextKey) return TARGET_CURSES[keys[i]];
+      }
+      return TARGET_CURSES[97];
+    }
+
+    function getMixCurse(roll) {
+      const keys = Object.keys(MIX_CURSES).map(Number).sort((a, b) => a - b);
+      for (let i = 0; i < keys.length; i++) {
+        const nextKey = keys[i + 1] || 101;
+        if (roll >= keys[i] && roll < nextKey) return MIX_CURSES[keys[i]];
+      }
+      return MIX_CURSES[92];
+    }
+
+    function initState(mode, manualTrackType) {
+      return {
+        mode,
+        manualTrackType,
+        room: 1,
+        phase: "track-type",
+        powerUps: 0,
+        usedPowerUpThisRoom: false,
+        roomLockTrack: null,
+        usedRoomLock: false,
+        usedOneLastBreath: false,
+        forcedRooms: 0,
+        tracks: [],
+        curses: [],
+        mutations: [],
+        log: [],
+        currentTrack: null,
+        currentMutation: null,
+        currentCurse: null,
+        seededRooms: null,
+        casualFirstCurseIgnored: false,
+        isLastRoom: false
+      };
+    }
+
+    function log(msg) {
+      state.log.unshift({ room: state.room, msg, time: Date.now() });
+      renderLog();
+      save();
+    }
+
+    function save() {
+      localStorage.setItem("superbeatmaker", JSON.stringify(state));
+    }
+
+    function load() {
+      const data = localStorage.getItem("superbeatmaker");
+      if (data) {
+        try {
+          return JSON.parse(data);
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    function exportState() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `superbeatmaker-run-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importState(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          state = JSON.parse(e.target.result);
+          save();
+          showScreen("game");
+          render();
+        } catch (err) {
+          alert("Invalid file");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // UI
+    function $(id) { return document.getElementById(id); }
+    function showScreen(name) {
+      $("setup-screen").classList.toggle("hidden", name !== "setup");
+      $("game-screen").classList.toggle("hidden", name !== "game");
+      $("end-screen").classList.toggle("hidden", name !== "end");
+    }
+
+    function render() {
+      $("room-number").textContent = state.room;
+      $("current-room").textContent = state.room;
+      $("powerup-count").textContent = state.powerUps;
+      $("mode-badge").textContent = state.mode.charAt(0).toUpperCase() + state.mode.slice(1);
+      
+      renderTracks();
+      renderLog();
+      renderRoom();
+      renderPowerUpPanel();
+    }
+
+    function renderTracks() {
+      const list = $("tracks-list");
+      const noTracks = $("no-tracks");
+      
+      if (state.tracks.length === 0) {
+        list.innerHTML = "";
+        noTracks.classList.remove("hidden");
+        return;
+      }
+      
+      noTracks.classList.add("hidden");
+      list.innerHTML = state.tracks.map((t, i) => `
+        <div class="track-item ${t.curses.length ? 'cursed' : ''}">
+          <div class="track-header">Room ${t.room}: ${t.type}${t.deleted ? ' [DELETED]' : ''}</div>
+          <div class="track-effects">
+            ${t.mutation ? `<span class="badge mutation">M: ${t.mutation}</span>` : ''}
+            ${t.curses.map(c => `<span class="badge curse">C: ${c}</span>`).join(' ')}
+            ${state.roomLockTrack === i ? '<span class="badge powerup">LOCKED</span>' : ''}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderLog() {
+      $("log").innerHTML = state.log.slice(0, 50).map(l => 
+        `<div class="log-entry"><strong>R${l.room}:</strong> ${l.msg}</div>`
+      ).join("");
+    }
+
+    function renderPowerUpPanel() {
+      const panel = $("powerup-panel");
+      const canUse = state.powerUps > 0 && !state.usedPowerUpThisRoom && 
+        ["curse-check", "mutation", "curse-result"].includes(state.phase);
+      
+      panel.classList.toggle("hidden", !canUse);
+      
+      if (canUse) {
+        document.querySelectorAll(".powerup-btn").forEach(btn => {
+          const type = btn.dataset.type;
+          let disabled = false;
+          
+          if (type === "lock" && state.usedRoomLock) disabled = true;
+          if (type === "painshift" && state.room <= 3) disabled = true;
+          if (type === "breath" && state.usedOneLastBreath) disabled = true;
+          if (type === "redirect" && state.phase !== "curse-result") disabled = true;
+          if (type === "split" && state.phase !== "curse-result") disabled = true;
+          
+          btn.disabled = disabled;
+        });
+      }
+    }
+
+    function renderRoom() {
+      const content = $("room-content");
+      
+      switch (state.phase) {
+        case "track-type":
+          if (state.manualTrackType) {
+            content.innerHTML = `
+              <h3>Select Track Type</h3>
+              <select id="track-type-select">
+                ${TRACK_TYPES.map(([,, name]) => `<option value="${name}">${name}</option>`).join("")}
+              </select>
+              <button id="confirm-track-type" style="margin-top: 0.5rem;">Confirm</button>
+            `;
+            $("confirm-track-type").onclick = () => {
+              const type = $("track-type-select").value;
+              state.currentTrack = { room: state.room, type, mutation: null, curses: [], deleted: false };
+              log(`Track Type: ${type} (manual)`);
+              state.phase = "curse-check";
+              render();
+            };
+          } else {
+            content.innerHTML = `
+              <h3>Roll Track Type</h3>
+              <button id="roll-track-type">Roll d100</button>
+            `;
+            $("roll-track-type").onclick = rollTrackType;
+          }
+          break;
+          
+        case "curse-check":
+          content.innerHTML = `
+            <h3>Track: ${state.currentTrack.type}</h3>
+            <p>Roll for Curse Check</p>
+            <button id="roll-curse-check">Roll d100</button>
+          `;
+          $("roll-curse-check").onclick = rollCurseCheck;
+          break;
+          
+        case "curse-result":
+          content.innerHTML = `
+            <div class="roll-result">
+              <div class="roll-number">${state.currentCurse.roll}</div>
+              <div class="roll-text">${state.currentCurse.type}: ${state.currentCurse.effect}</div>
+            </div>
+            <button id="accept-curse">Accept Curse</button>
+          `;
+          $("accept-curse").onclick = acceptCurse;
+          break;
+          
+        case "mutation":
+          content.innerHTML = `
+            <h3>Track: ${state.currentTrack.type}</h3>
+            <p>Roll for Mutation</p>
+            <button id="roll-mutation">Roll d100</button>
+          `;
+          $("roll-mutation").onclick = rollMutation;
+          break;
+          
+        case "mutation-result":
+          content.innerHTML = `
+            <div class="roll-result">
+              <div class="roll-number">${state.currentMutation.roll}</div>
+              <div class="roll-text">${state.currentMutation.effect}</div>
+            </div>
+            <button id="accept-mutation">Accept & Compose</button>
+          `;
+          $("accept-mutation").onclick = acceptMutation;
+          break;
+          
+        case "compose":
+          content.innerHTML = `
+            <h3>Composing: ${state.currentTrack.type}</h3>
+            ${state.currentTrack.mutation ? `<p class="badge mutation">Mutation: ${state.currentTrack.mutation}</p>` : ''}
+            <p style="margin-top: 0.5rem; color: var(--muted);">Create your track following the constraints above.</p>
+            <button id="finalize-room" style="margin-top: 0.5rem;">Finalize Room</button>
+          `;
+          $("finalize-room").onclick = finalizeRoom;
+          break;
+          
+        case "powerup-roll":
+          content.innerHTML = `
+            <h3>Room Finalized!</h3>
+            <p>Roll for Power-Up (didn't use one this room)</p>
+            <button id="roll-powerup">Roll d100</button>
+          `;
+          $("roll-powerup").onclick = rollPowerUp;
+          break;
+          
+        case "next-room":
+          content.innerHTML = `
+            <h3>Room ${state.room} Complete</h3>
+            <div class="flex" style="margin-top: 0.5rem;">
+              <button id="next-room-btn">Next Room</button>
+              <button id="end-run-early" class="secondary">End Run</button>
+            </div>
+          `;
+          $("next-room-btn").onclick = nextRoom;
+          $("end-run-early").onclick = endRun;
+          break;
+      }
+    }
+
+    function rollTrackType() {
+      const r = roll();
+      const type = getFromTable(r, TRACK_TYPES);
+      state.currentTrack = { room: state.room, type, mutation: null, curses: [], deleted: false };
+      log(`Track Type Roll: ${r} → ${type}`);
+      state.phase = "curse-check";
+      render();
+    }
+
+    function rollCurseCheck() {
+      let r = roll();
+      log(`Curse Check Roll: ${r}`);
+      
+      // Cursed mode: always cursed
+      if (state.mode === "cursed") {
+        r = 71; // Force target curse
+        log("Cursed Mode: Forcing curse");
+      }
+      
+      // Casual mode: ignore first curse
+      if (state.mode === "casual" && !state.casualFirstCurseIgnored && r >= 71) {
+        state.casualFirstCurseIgnored = true;
+        log("Casual Mode: First curse ignored");
+        r = 1;
+      }
+      
+      if (r <= 70) {
+        log("No Curse");
+        state.phase = "mutation";
+        render();
+      } else if (r <= 98) {
+        // Target Curse
+        const curseRoll = roll();
+        let effect = getTargetCurse(curseRoll);
+        
+        // Hard mode: re-roll no-effect curses
+        if (state.mode === "hard" && effect.includes("ignore")) {
+          const reroll = roll();
+          effect = getTargetCurse(reroll);
+          log(`Hard Mode re-roll: ${reroll}`);
+        }
+        
+        state.currentCurse = { type: "Target Curse", roll: curseRoll, effect };
+        log(`Target Curse Roll: ${curseRoll} → ${effect}`);
+        state.phase = "curse-result";
+        render();
+      } else {
+        // Mix Curse
+        let curseRoll = roll();
+        let effect = getMixCurse(curseRoll);
+        
+        // Re-roll "last room" if room 1 or 2
+        if (effect.includes("last Room") && state.room <= 2) {
+          curseRoll = roll();
+          effect = getMixCurse(curseRoll);
+          log("Re-rolling Mix Curse (Room 1/2)");
+        }
+        
+        state.currentCurse = { type: "Mix Curse", roll: curseRoll, effect };
+        log(`Mix Curse Roll: ${curseRoll} → ${effect}`);
+        
+        if (effect.includes("last Room")) {
+          state.isLastRoom = true;
+        }
+        
+        state.phase = "curse-result";
+        render();
+      }
+    }
+
+    function acceptCurse() {
+      state.curses.push(state.currentCurse);
+      
+      if (state.currentCurse.type === "Target Curse") {
+        // Check for room lock protection
+        if (state.roomLockTrack !== null && state.tracks.length > 0) {
+          log("Room Lock prevented curse on protected track");
+        } else if (state.tracks.length > 0) {
+          // Apply to a previous track (simplified: just the last one)
+          const targetIdx = state.tracks.length - 1;
+          state.tracks[targetIdx].curses.push(state.currentCurse.effect);
+          
+          if (state.currentCurse.effect.includes("Delete Track")) {
+            state.tracks[targetIdx].deleted = true;
+          }
+        }
+        state.currentTrack.curses.push(state.currentCurse.effect);
+      }
+      
+      // Handle forced room curse
+      if (state.currentCurse.effect.includes("Force a Room") || 
+          state.currentCurse.effect.includes("force another Room")) {
+        state.forcedRooms++;
+      }
+      
+      state.currentCurse = null;
+      state.phase = "mutation";
+      render();
+    }
+
+    function rollMutation() {
+      let r = roll();
+      let effect = getMutation(r);
+      
+      // Casual mode: re-roll 90-100
+      if (state.mode === "casual" && r >= 90) {
+        r = roll(89);
+        effect = getMutation(r);
+        log("Casual Mode: Re-rolling high mutation");
+      }
+      
+      // Hard mode: re-roll no-effect mutations
+      if (state.mode === "hard" && effect.includes("No Mutation")) {
+        r = roll();
+        effect = getMutation(r);
+        log("Hard Mode: Re-rolling no-effect mutation");
+      }
+      
+      // Handle special mutations
+      if (effect.includes("Room One") && state.room === 1) {
+        effect = "No Mutation.";
+      }
+      
+      if (effect.includes("Roll twice")) {
+        const r2 = roll();
+        const effect2 = getMutation(r2);
+        effect = `${effect} (${r}: ${getMutation(r)}) AND (${r2}: ${effect2})`;
+      }
+      
+      state.currentMutation = { roll: r, effect };
+      log(`Mutation Roll: ${r} → ${effect}`);
+      state.mutations.push(state.currentMutation);
+      state.phase = "mutation-result";
+      render();
+    }
+
+    function acceptMutation() {
+      if (!state.currentMutation.effect.includes("No Mutation")) {
+        state.currentTrack.mutation = state.currentMutation.effect;
+      }
+      state.currentMutation = null;
+      state.phase = "compose";
+      render();
+    }
+
+    function finalizeRoom() {
+      state.tracks.push(state.currentTrack);
+      log(`Track finalized: ${state.currentTrack.type}`);
+      
+      if (state.usedPowerUpThisRoom) {
+        state.phase = "next-room";
+      } else {
+        state.phase = "powerup-roll";
+      }
+      render();
+    }
+
+    function rollPowerUp() {
+      const r = roll();
+      log(`Power-Up Roll: ${r}`);
+      
+      if (r >= 98) {
+        state.powerUps += 2;
+        log("Gained 2 Power-Ups!");
+      } else if (r >= 76) {
+        state.powerUps += 1;
+        log("Gained 1 Power-Up");
+      } else {
+        log("No Power-Up gained");
+      }
+      
+      // Check if Quick Room mode
+      if (state.mode === "quick") {
+        endRun();
+        return;
+      }
+      
+      // Check if last room due to curse
+      if (state.isLastRoom) {
+        endRun();
+        return;
+      }
+      
+      state.phase = "next-room";
+      render();
+    }
+
+    function nextRoom() {
+      state.room++;
+      state.phase = "track-type";
+      state.usedPowerUpThisRoom = false;
+      state.currentTrack = null;
+      state.currentMutation = null;
+      state.currentCurse = null;
+      
+      save();
+      render();
+    }
+
+    function usePowerUp(type) {
+      if (state.powerUps <= 0 || state.usedPowerUpThisRoom) return;
+      
+      state.powerUps--;
+      state.usedPowerUpThisRoom = true;
+      
+      switch (type) {
+        case "redirect":
+          log("Power-Up: Curse Redirect - Re-rolling curse target");
+          // Re-roll the curse (simplified)
+          state.currentCurse = null;
+          state.phase = "curse-check";
+          break;
+        case "lock":
+          if (!state.usedRoomLock && state.tracks.length > 0) {
+            state.roomLockTrack = state.tracks.length - 1;
+            state.usedRoomLock = true;
+            log(`Power-Up: Room Lock - Protected track ${state.tracks.length}`);
+          }
+          break;
+        case "painshift":
+          log("Power-Up: Pain Shift - No mutation, guaranteed curse");
+          state.currentMutation = { roll: 0, effect: "No Mutation (Pain Shift)" };
+          state.phase = "mutation-result";
+          // Force a target curse roll after
+          break;
+        case "split":
+          log("Power-Up: Split the Wound - Curse applied at half strength");
+          // Apply half strength (flavor only in this simplified version)
+          break;
+        case "breath":
+          if (!state.usedOneLastBreath) {
+            state.usedOneLastBreath = true;
+            log("Power-Up: One Last Breath - Reversing last curse, forcing final room");
+            if (state.curses.length > 0) {
+              state.curses.pop();
+            }
+            state.forcedRooms++;
+            state.isLastRoom = true;
+          }
+          break;
+      }
+      
+      render();
+    }
+
+    function endRun() {
+      showScreen("end");
+      
+      const summary = `
+        <p><strong>Rooms:</strong> ${state.room}</p>
+        <p><strong>Tracks:</strong> ${state.tracks.length}</p>
+        <p><strong>Curses:</strong> ${state.curses.length}</p>
+        <p><strong>Mode:</strong> ${state.mode}</p>
+      `;
+      $("run-summary").innerHTML = summary;
+      
+      // Render tags
+      $("run-tags").innerHTML = RUN_TAGS.map(([name, desc]) => 
+        `<span class="tag" title="${desc}">${name}</span>`
+      ).join("");
+      
+      // Make tags clickable to mark as active
+      document.querySelectorAll("#run-tags .tag").forEach(tag => {
+        tag.style.cursor = "pointer";
+        tag.onclick = () => tag.classList.toggle("active");
+      });
+      
+      localStorage.removeItem("superbeatmaker");
+    }
+
+    // Event Listeners
+    $("start-run").onclick = () => {
+      const mode = $("mode-select").value;
+      const manualTrackType = $("manual-track-type").checked;
+      state = initState(mode, manualTrackType);
+      
+      // Seeded mode setup
+      if (mode === "seeded") {
+        const numRooms = roll(10) || 1;
+        state.seededRooms = [];
+        for (let i = 0; i < numRooms; i++) {
+          const typeRoll = roll();
+          const mutRoll = roll();
+          state.seededRooms.push({
+            type: getFromTable(typeRoll, TRACK_TYPES),
+            mutation: getMutation(mutRoll)
+          });
+        }
+        log(`Seeded Run: ${numRooms} rooms pre-rolled`);
+      }
+      
+      save();
+      showScreen("game");
+      render();
+    };
+
+    $("continue-run").onclick = () => {
+      state = load();
+      if (state) {
+        showScreen("game");
+        render();
+      }
+    };
+
+    $("end-run").onclick = endRun;
+    $("export-btn").onclick = exportState;
+    $("export-final").onclick = exportState;
+    
+    $("import-btn").onclick = () => $("import-input").click();
+    $("import-input").onchange = (e) => {
+      if (e.target.files[0]) importState(e.target.files[0]);
+    };
+
+    $("new-run").onclick = () => {
+      state = null;
+      showScreen("setup");
+    };
+
+    $("skip-powerup").onclick = () => {
+      renderPowerUpPanel();
+    };
+
+    document.querySelectorAll(".powerup-btn").forEach(btn => {
+      btn.onclick = () => usePowerUp(btn.dataset.type);
+    });
+
+    // Init
+    const saved = load();
+    if (saved) {
+      $("continue-run").disabled = false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+:root {
+  --bg: #0a0a0a;
+  --surface: #1a1a1a;
+  --surface2: #252525;
+  --border: #333;
+  --text: #e0e0e0;
+  --muted: #888;
+  --accent: #ff6b35;
+  --danger: #e53935;
+  --success: #43a047;
+  --info: #1e88e5;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+h3 {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+select,
+input {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+select {
+  width: 100%;
+}
+
+.flex {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: var(--surface2);
+  word-break: break-word;
+}
+
+.badge.curse {
+  background: var(--danger);
+  color: #fff;
+}
+
+.badge.mutation {
+  background: var(--info);
+  color: #fff;
+}
+
+.badge.powerup {
+  background: var(--success);
+  color: #fff;
+}
+
+.track-item {
+  background: var(--surface2);
+  padding: 0.75rem;
+  border-radius: 4px;
+  border-left: 3px solid var(--accent);
+}
+
+.track-item.cursed {
+  border-left-color: var(--danger);
+}
+
+.track-item .track-header {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.track-item .track-effects {
+  font-size: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.roll-result {
+  text-align: center;
+  padding: 1rem;
+  background: var(--surface2);
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.roll-result .roll-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.roll-result .roll-text {
+  margin-top: 0.5rem;
+}
+
+.log {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.log-entry {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  padding: 0.2rem 0.5rem;
+  background: var(--surface2);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.tag.active {
+  background: var(--accent);
+}
+
+#import-input {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  button {
+    padding: 0.4rem 0.75rem;
+  }
+}

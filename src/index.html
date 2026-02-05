@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Beatmaker</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Super Beatmaker</h1>
+    
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+      <div class="card">
+        <h2>New Run</h2>
+        <div class="grid" style="margin-top: 0.5rem;">
+          <label>
+            Mode
+            <select id="mode-select">
+              <option value="normal">Normal</option>
+              <option value="hard">Hard Mode</option>
+              <option value="casual">Casual Mode</option>
+              <option value="cursed">Cursed Mode</option>
+              <option value="seeded">Seeded Run</option>
+              <option value="quick">Quick Room</option>
+            </select>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="manual-track-type">
+            Manual Track Type Selection
+          </label>
+          <button id="start-run">Enter the Dungeon</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2>Continue Run</h2>
+        <div class="flex">
+          <button id="continue-run" class="secondary" disabled>Continue Saved Run</button>
+          <button id="import-btn" class="secondary">Import</button>
+          <input type="file" id="import-input" accept=".json">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden">
+      <div class="card">
+        <div class="flex-between">
+          <div>
+            <span class="badge">Room <span id="room-number">1</span></span>
+            <span class="badge powerup">Power-Ups: <span id="powerup-count">0</span></span>
+            <span class="badge" id="mode-badge">Normal</span>
+          </div>
+          <div class="flex">
+            <button id="export-btn" class="small secondary">Export</button>
+            <button id="end-run" class="small danger">End Run</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Current Room -->
+      <div id="room-panel" class="card">
+        <h2>Room <span id="current-room">1</span></h2>
+        <div id="room-content"></div>
+      </div>
+      
+      <!-- Power-Ups Panel -->
+      <div id="powerup-panel" class="card hidden">
+        <h2>Use Power-Up</h2>
+        <div class="grid grid-2">
+          <button class="secondary powerup-btn" data-type="redirect">Curse Redirect</button>
+          <button class="secondary powerup-btn" data-type="lock">Room Lock</button>
+          <button class="secondary powerup-btn" data-type="painshift">Pain Shift</button>
+          <button class="secondary powerup-btn" data-type="split">Split the Wound</button>
+          <button class="secondary powerup-btn" data-type="breath">One Last Breath</button>
+        </div>
+        <button id="skip-powerup" class="secondary" style="margin-top: 0.5rem; width: 100%;">Skip</button>
+      </div>
+      
+      <!-- Tracks List -->
+      <div class="card">
+        <h2>Tracks</h2>
+        <div id="tracks-list" class="grid"></div>
+        <p id="no-tracks" class="muted" style="color: var(--muted);">No tracks yet.</p>
+      </div>
+      
+      <!-- Log -->
+      <div class="card">
+        <h2>Run Log</h2>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+    
+    <!-- End Screen -->
+    <div id="end-screen" class="hidden">
+      <div class="card">
+        <h2>Run Complete</h2>
+        <div id="run-summary"></div>
+        <h3 style="margin-top: 1rem;">Tags</h3>
+        <div id="run-tags" class="tags"></div>
+        <div class="flex" style="margin-top: 1rem;">
+          <button id="new-run">New Run</button>
+          <button id="export-final" class="secondary">Export Run</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

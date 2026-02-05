@@ -1,0 +1,14 @@
+{
+  "name": "superbeatmaker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run dev.ts",
+    "build": "bun run build.ts",
+    "preview": "bunx serve dist"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}
