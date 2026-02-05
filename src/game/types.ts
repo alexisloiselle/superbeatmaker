@@ -85,6 +85,7 @@ export interface GameState {
   pendingTargetCurseRolls: number;
   painShiftActive: boolean;
   conditionalPowerUp: boolean;
+  pendingConditionalPowerUp: boolean;
   powerUpBlockedThisRoom: boolean;
   oneLastBreathPending: boolean;
   splitWoundActive: boolean;

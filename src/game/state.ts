@@ -60,6 +60,7 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     pendingTargetCurseRolls: 0,
     painShiftActive: false,
     conditionalPowerUp: false,
+    pendingConditionalPowerUp: false,
     powerUpBlockedThisRoom: false,
     oneLastBreathPending: false,
     splitWoundActive: false,

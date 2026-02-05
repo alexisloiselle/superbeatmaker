@@ -31,6 +31,12 @@ export function render(): void {
   setText('powerup-count', String(state.powerUps));
   setText('mode-badge', state.mode.charAt(0).toUpperCase() + state.mode.slice(1));
 
+  // Show conditional power-up warning
+  const conditionalBadge = $('conditional-badge');
+  if (conditionalBadge) {
+    conditionalBadge.classList.toggle('hidden', !state.conditionalPowerUp);
+  }
+
   renderTracks();
   renderLog();
   renderRoom();

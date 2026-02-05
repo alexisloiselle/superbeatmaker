@@ -729,14 +729,14 @@ export function rollPowerUp(): void {
   addLogEntry(`Power-Up Roll: ${r}`);
 
   let powerUps = state.powerUps;
-  let conditionalPowerUp = false;
+  let pendingConditionalPowerUp = false;
   
   if (r >= 98) {
     powerUps += 2;
     addLogEntry('Gained 2 Power-Ups!');
   } else if (r >= 86) {
     powerUps += 1;
-    conditionalPowerUp = true;
+    pendingConditionalPowerUp = true;
     addLogEntry('Gained 1 Conditional Power-Up (must use next room or lose it)');
   } else if (r >= 76) {
     powerUps += 1;
@@ -745,7 +745,7 @@ export function rollPowerUp(): void {
     addLogEntry('No Power-Up gained');
   }
 
-  updateState({ powerUps, conditionalPowerUp, phase: 'next-room' });
+  updateState({ powerUps, pendingConditionalPowerUp, phase: 'next-room' });
 }
 
 export function nextRoom(): void {
@@ -757,11 +757,15 @@ export function nextRoom(): void {
   let isLastRoom = state.isLastRoom;
   let oneLastBreathPending = state.oneLastBreathPending;
 
+  // Check if conditional power-up from PREVIOUS room was not used
   if (state.conditionalPowerUp && !state.usedPowerUpThisRoom) {
     powerUps = Math.max(0, powerUps - 1);
     powerUpBlockedThisRoom = true;
     addLogEntry('Conditional Power-Up lost (not used this room)');
   }
+
+  // Convert pending conditional (just earned) to active conditional for next room
+  const conditionalPowerUp = state.pendingConditionalPowerUp;
 
   if (state.oneLastBreathPending) {
     isLastRoom = true;
@@ -783,7 +787,8 @@ export function nextRoom(): void {
     curseTargetRoll: null,
     pendingTargetCurseRolls: 0,
     painShiftActive: false,
-    conditionalPowerUp: false,
+    conditionalPowerUp,
+    pendingConditionalPowerUp: false,
     powerUps,
     powerUpBlockedThisRoom,
     isLastRoom,

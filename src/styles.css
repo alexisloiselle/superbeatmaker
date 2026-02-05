@@ -152,6 +152,13 @@ select {
   color: #fff;
 }
 
+.badge.warning {
+  background: #ff9800;
+  color: #000;
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
 .badge.timer {
   background: var(--accent);
   color: #fff;
