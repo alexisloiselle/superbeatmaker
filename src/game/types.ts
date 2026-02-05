@@ -2,6 +2,7 @@ export type GameMode = 'normal' | 'hard' | 'casual' | 'cursed' | 'seeded' | 'qui
 
 export type Phase = 
   | 'track-type'
+  | 'track-type-reselect'  // For "abandon track type" mutation
   | 'curse-check'
   | 'curse-result'
   | 'mutation'
@@ -13,7 +14,8 @@ export type Phase =
 export interface Track {
   room: number;
   type: string;
-  mutation: string | null;
+  originalType?: string;  // If track type was changed
+  mutations: string[];    // Changed to array for multiple mutations
   curses: string[];
   deleted: boolean;
 }
@@ -61,6 +63,11 @@ export interface GameState {
   seededRooms: SeededRoom[] | null;
   casualFirstCurseIgnored: boolean;
   isLastRoom: boolean;
+  // New state for mechanics
+  doubleMutationNextRoom: boolean;
+  curseTargetTrackIndex: number | null;  // Track that receives all future curses
+  timerEndTime: number | null;           // Timestamp when timer expires
+  pendingTrackTypeReselect: boolean;     // For "abandon track type"
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';
@@ -76,6 +83,11 @@ export interface MutationMechanics {
   roomOneRule?: RoomOneRule;
   noEffect?: boolean;
   takeCurseInstead?: boolean;
+  abandonTrackType?: boolean;           // Track must abandon its intended Track Type
+  copyPreviousTrackType?: boolean;      // Purpose changes to match previous Room
+  repeatLastMutation?: boolean;         // Repeat last Room's Mutation
+  timerMinutes?: number;                // Room finalizes in X minutes
+  deleteIfHighRoll?: number;            // Roll >= X = delete Track (e.g., 80)
 }
 
 export interface MutationEntry {
@@ -84,10 +96,13 @@ export interface MutationEntry {
 }
 
 export interface TargetCurseMechanics {
-  forceRoom?: boolean;
+  forceRoom?: boolean;                  // Always forces a room
+  forceRoomChance?: number;             // Percentage chance to force room (0-100)
   deleteTrack?: boolean;
   rerollTwice?: boolean;
   applyLastCurse?: boolean;
+  doubleMutationNextRoom?: boolean;     // Next Room will have two Mutations
+  becomesCurseTarget?: boolean;         // This Track is now target of all future Curses
 }
 
 export interface TargetCurseEntry {
@@ -97,6 +112,7 @@ export interface TargetCurseEntry {
 
 export interface MixCurseMechanics {
   isLastRoom?: boolean;
+  minRoom?: number;                     // Minimum room to apply (re-roll if below)
   rollTargetCurses?: number;
 }
 

@@ -36,7 +36,7 @@ export function getMixCurseEntry(rollValue: number): MixCurseEntry {
   return getFromRecord(rollValue, MIX_CURSES);
 }
 
-// Legacy helpers for seeded mode
+// Legacy helper for seeded mode
 export function getMutation(rollValue: number): string {
   return getMutationEntry(rollValue).text;
 }
@@ -77,6 +77,25 @@ export function selectTrackType(type: string): void {
   updateState({
     currentTrack: createTrack(state.room, type),
     phase: nextPhase,
+  });
+}
+
+// For "abandon track type" mutation - reselect a different type
+export function reselectTrackType(newType: string): void {
+  const state = getState();
+  if (!state?.currentTrack) return;
+
+  const originalType = state.currentTrack.type;
+  addLogEntry(`Track Type changed: ${originalType} → ${newType}`);
+  
+  updateState({
+    currentTrack: {
+      ...state.currentTrack,
+      originalType,
+      type: newType,
+    },
+    pendingTrackTypeReselect: false,
+    phase: 'compose',
   });
 }
 
@@ -129,11 +148,11 @@ function rollMixCurse(): void {
   let curseRoll = roll();
   let entry = getMixCurseEntry(curseRoll);
 
-  // Re-roll "last room" if room 1 or 2
-  if (entry.mechanics?.isLastRoom && state.room <= 2) {
+  // Re-roll if below minimum room requirement
+  if (entry.mechanics?.minRoom && state.room < entry.mechanics.minRoom) {
+    addLogEntry(`Re-rolling Mix Curse (requires Room ${entry.mechanics.minRoom}+)`);
     curseRoll = roll();
     entry = getMixCurseEntry(curseRoll);
-    addLogEntry('Re-rolling Mix Curse (Room 1/2)');
   }
 
   const curse: Curse = { type: 'Mix Curse', roll: curseRoll, effect: entry.text };
@@ -159,32 +178,64 @@ export function acceptCurse(): void {
   let tracks = [...state.tracks];
   let currentTrack = state.currentTrack ? { ...state.currentTrack } : null;
   let forcedRooms = state.forcedRooms;
+  let doubleMutationNextRoom = state.doubleMutationNextRoom;
+  let curseTargetTrackIndex = state.curseTargetTrackIndex;
 
   if (state.currentCurse.type === 'Target Curse') {
     const targetEntry = curseEntry as TargetCurseEntry;
     
-    if (state.roomLockTrack !== null && tracks.length > 0) {
+    // Determine which track to apply curse to
+    let targetIdx = curseTargetTrackIndex !== null 
+      ? curseTargetTrackIndex 
+      : (tracks.length > 0 ? tracks.length - 1 : -1);
+    
+    if (state.roomLockTrack !== null && targetIdx === state.roomLockTrack) {
       addLogEntry('Room Lock prevented curse on protected track');
-    } else if (tracks.length > 0) {
-      const targetIdx = tracks.length - 1;
+    } else if (targetIdx >= 0) {
       tracks[targetIdx] = {
         ...tracks[targetIdx],
         curses: [...tracks[targetIdx].curses, state.currentCurse.effect],
         deleted: targetEntry.mechanics?.deleteTrack ? true : tracks[targetIdx].deleted,
       };
     }
+    
     if (currentTrack) {
       currentTrack.curses = [...currentTrack.curses, state.currentCurse.effect];
     }
     
+    // Handle forceRoom
     if (targetEntry.mechanics?.forceRoom) {
       forcedRooms++;
+      addLogEntry('Forced Room added');
+    }
+    
+    // Handle forceRoomChance
+    if (targetEntry.mechanics?.forceRoomChance) {
+      const chanceRoll = roll();
+      if (chanceRoll > (100 - targetEntry.mechanics.forceRoomChance)) {
+        forcedRooms++;
+        addLogEntry(`Force Room chance: ${chanceRoll} - Forced Room added`);
+      } else {
+        addLogEntry(`Force Room chance: ${chanceRoll} - No forced room`);
+      }
+    }
+    
+    // Handle doubleMutationNextRoom
+    if (targetEntry.mechanics?.doubleMutationNextRoom) {
+      doubleMutationNextRoom = true;
+      addLogEntry('Next room will have two mutations');
+    }
+    
+    // Handle becomesCurseTarget
+    if (targetEntry.mechanics?.becomesCurseTarget && targetIdx >= 0) {
+      curseTargetTrackIndex = targetIdx;
+      addLogEntry(`Track ${targetIdx + 1} is now the target of all future curses`);
     }
   } else {
     const mixEntry = curseEntry as MixCurseEntry;
     if (mixEntry.mechanics?.rollTargetCurses) {
-      // TODO: Handle rolling multiple target curses
       addLogEntry(`Rolling ${mixEntry.mechanics.rollTargetCurses} Target Curses`);
+      // TODO: Queue multiple target curses
     }
   }
 
@@ -193,12 +244,15 @@ export function acceptCurse(): void {
     tracks,
     currentTrack,
     forcedRooms,
+    doubleMutationNextRoom,
+    curseTargetTrackIndex,
     currentCurse: null,
     phase: 'mutation',
   });
 }
 
-function rollSingleMutation(mode: string, room: number): string {
+function rollSingleMutation(mode: string, room: number, isSecondMutation = false): string {
+  const state = getState();
   const r = roll();
   let entry = getMutationEntry(r);
 
@@ -220,7 +274,7 @@ function rollSingleMutation(mode: string, room: number): string {
   if (entry.mechanics?.roomOneRule && room === 1) {
     if (entry.mechanics.roomOneRule === 'reroll') {
       addLogEntry('Room 1: Re-rolling mutation');
-      return rollSingleMutation(mode, room);
+      return rollSingleMutation(mode, room, isSecondMutation);
     }
     if (entry.mechanics.roomOneRule === 'no-mutation') {
       addLogEntry('Room 1: No mutation');
@@ -231,15 +285,42 @@ function rollSingleMutation(mode: string, room: number): string {
   // Recursive handling of "Roll twice"
   if (entry.mechanics?.rollTwice) {
     addLogEntry('Rolling twice for mutations');
-    const effect1 = rollSingleMutation(mode, room);
-    const effect2 = rollSingleMutation(mode, room);
+    const effect1 = rollSingleMutation(mode, room, false);
+    const effect2 = rollSingleMutation(mode, room, true);
     return `[${effect1}] AND [${effect2}]`;
   }
 
-  // Handle "Take Curse Instead"
-  if (entry.mechanics?.takeCurseInstead) {
-    addLogEntry('Mutation: Taking a Target Curse instead');
-    // This will be handled in the UI by transitioning to curse
+  // Handle copyPreviousTrackType
+  if (entry.mechanics?.copyPreviousTrackType && state) {
+    if (state.tracks.length > 0) {
+      const previousTrack = state.tracks[state.tracks.length - 1];
+      addLogEntry(`Track type changes to: ${previousTrack.type}`);
+      // This will be handled in acceptMutation
+    }
+  }
+
+  // Handle repeatLastMutation
+  if (entry.mechanics?.repeatLastMutation && state) {
+    if (state.tracks.length > 0) {
+      const previousTrack = state.tracks[state.tracks.length - 1];
+      if (previousTrack.mutations.length > 0) {
+        const lastMutation = previousTrack.mutations[previousTrack.mutations.length - 1];
+        addLogEntry(`Repeating last mutation: ${lastMutation}`);
+        return lastMutation;
+      }
+    }
+    addLogEntry('No previous mutation to repeat');
+    return 'No Mutation.';
+  }
+
+  // Handle deleteIfHighRoll
+  if (entry.mechanics?.deleteIfHighRoll) {
+    const deleteRoll = roll();
+    addLogEntry(`Delete check roll: ${deleteRoll} (need ${entry.mechanics.deleteIfHighRoll}+)`);
+    if (deleteRoll >= entry.mechanics.deleteIfHighRoll) {
+      addLogEntry('Track will be deleted!');
+      // Mark for deletion in acceptMutation
+    }
   }
 
   addLogEntry(`Mutation Roll: ${r} → ${entry.text}`);
@@ -250,13 +331,26 @@ export function rollMutation(): void {
   const state = getState();
   if (!state) return;
 
-  const effect = rollSingleMutation(state.mode, state.room);
+  // Check if we need double mutations
+  const needsDoubleMutation = state.doubleMutationNextRoom;
+  
+  let effect: string;
+  if (needsDoubleMutation) {
+    addLogEntry('Double mutation room!');
+    const effect1 = rollSingleMutation(state.mode, state.room, false);
+    const effect2 = rollSingleMutation(state.mode, state.room, true);
+    effect = `[${effect1}] AND [${effect2}]`;
+  } else {
+    effect = rollSingleMutation(state.mode, state.room);
+  }
+  
   const mutation: Mutation = { roll: 0, effect };
   
   updateState({
     currentMutation: mutation,
     mutations: [...state.mutations, mutation],
     phase: 'mutation-result',
+    doubleMutationNextRoom: false,  // Reset after using
   });
 }
 
@@ -264,20 +358,63 @@ export function acceptMutation(): void {
   const state = getState();
   if (!state?.currentMutation || !state.currentTrack) return;
 
-  const currentTrack = { ...state.currentTrack };
-  
+  let currentTrack = { ...state.currentTrack };
+  let phase: typeof state.phase = 'compose';
+  let timerEndTime: number | null = null;
+  let pendingTrackTypeReselect = false;
+
   // Check if this is a no-effect mutation
   const isNoEffect = state.currentMutation.effect === 'No Mutation.' || 
                      state.currentMutation.effect.startsWith('No Mutation');
   
   if (!isNoEffect) {
-    currentTrack.mutation = state.currentMutation.effect;
+    // Parse mutation text to find the original entry
+    const mutationText = state.currentMutation.effect;
+    
+    // Add to mutations array
+    currentTrack.mutations = [...currentTrack.mutations, mutationText];
+    
+    // Check for special mechanics by finding matching entries
+    for (const key of Object.keys(MUTATIONS)) {
+      const entry = MUTATIONS[Number(key)];
+      if (mutationText.includes(entry.text)) {
+        // Handle abandonTrackType
+        if (entry.mechanics?.abandonTrackType) {
+          pendingTrackTypeReselect = true;
+          phase = 'track-type-reselect';
+          addLogEntry('Must select a new track type');
+        }
+        
+        // Handle copyPreviousTrackType
+        if (entry.mechanics?.copyPreviousTrackType && state.tracks.length > 0) {
+          const previousTrack = state.tracks[state.tracks.length - 1];
+          currentTrack.originalType = currentTrack.type;
+          currentTrack.type = previousTrack.type;
+          addLogEntry(`Track type changed to: ${previousTrack.type}`);
+        }
+        
+        // Handle timerMinutes
+        if (entry.mechanics?.timerMinutes) {
+          timerEndTime = Date.now() + entry.mechanics.timerMinutes * 60 * 1000;
+          addLogEntry(`Timer started: ${entry.mechanics.timerMinutes} minutes`);
+        }
+        
+        // Handle deleteIfHighRoll (deletion is logged but player must manually delete)
+        if (entry.mechanics?.deleteIfHighRoll) {
+          // The roll was already done in rollSingleMutation
+        }
+        
+        break;
+      }
+    }
   }
 
   updateState({
     currentTrack,
     currentMutation: null,
-    phase: 'compose',
+    phase,
+    timerEndTime,
+    pendingTrackTypeReselect,
   });
 }
 
@@ -290,6 +427,7 @@ export function finalizeRoom(): void {
   updateState({
     tracks: [...state.tracks, state.currentTrack],
     phase: state.usedPowerUpThisRoom ? 'next-room' : 'powerup-roll',
+    timerEndTime: null,  // Clear timer
   });
 }
 
@@ -325,6 +463,8 @@ export function nextRoom(): void {
     currentTrack: null,
     currentMutation: null,
     currentCurse: null,
+    timerEndTime: null,
+    pendingTrackTypeReselect: false,
   });
 }
 

@@ -1,4 +1,4 @@
-import type { GameState, GameMode, Track, Curse, Mutation, LogEntry } from './types';
+import type { GameState, GameMode, Track, LogEntry } from './types';
 
 let state: GameState | null = null;
 const listeners: Set<() => void> = new Set();
@@ -50,6 +50,11 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     seededRooms: null,
     casualFirstCurseIgnored: false,
     isLastRoom: false,
+    // New state for mechanics
+    doubleMutationNextRoom: false,
+    curseTargetTrackIndex: null,
+    timerEndTime: null,
+    pendingTrackTypeReselect: false,
   };
 }
 
@@ -57,7 +62,7 @@ export function createTrack(room: number, type: string): Track {
   return {
     room,
     type,
-    mutation: null,
+    mutations: [],  // Changed to array
     curses: [],
     deleted: false,
   };

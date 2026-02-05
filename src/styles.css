@@ -152,6 +152,34 @@ select {
   color: #fff;
 }
 
+.badge.timer {
+  background: var(--accent);
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.badge.timer.warning {
+  background: #ff9800;
+  animation: pulse 1s infinite;
+}
+
+.badge.timer.expired {
+  background: var(--danger);
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .track-item {
   background: var(--surface2);
   padding: 0.75rem;
@@ -161,6 +189,11 @@ select {
 
 .track-item.cursed {
   border-left-color: var(--danger);
+}
+
+.track-item.deleted {
+  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 .track-item .track-header {

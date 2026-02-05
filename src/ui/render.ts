@@ -3,6 +3,7 @@ import { TRACK_TYPES, RUN_TAGS } from '../game/data';
 import {
   rollTrackType,
   selectTrackType,
+  reselectTrackType,
   rollCurseCheck,
   acceptCurse,
   rollMutation,
@@ -14,6 +15,8 @@ import {
 } from '../game/logic';
 import { $, setContent, setText, onClick, showScreen } from './dom';
 import { save, clear, exportState } from '../storage';
+
+let timerInterval: ReturnType<typeof setInterval> | null = null;
 
 export function render(): void {
   const state = getState();
@@ -28,6 +31,7 @@ export function render(): void {
   renderLog();
   renderRoom();
   renderPowerUpPanel();
+  renderTimer();
   save();
 }
 
@@ -49,12 +53,17 @@ function renderTracks(): void {
   list.innerHTML = state.tracks
     .map(
       (t, i) => `
-    <div class="track-item ${t.curses.length ? 'cursed' : ''}">
-      <div class="track-header">Room ${t.room}: ${t.type}${t.deleted ? ' [DELETED]' : ''}</div>
+    <div class="track-item ${t.curses.length ? 'cursed' : ''}${t.deleted ? ' deleted' : ''}">
+      <div class="track-header">
+        Room ${t.room}: ${t.type}
+        ${t.originalType ? `<span class="muted">(was ${t.originalType})</span>` : ''}
+        ${t.deleted ? ' [DELETED]' : ''}
+      </div>
       <div class="track-effects">
-        ${t.mutation ? `<span class="badge mutation">M: ${t.mutation}</span>` : ''}
+        ${t.mutations.map((m) => `<span class="badge mutation">M: ${m}</span>`).join(' ')}
         ${t.curses.map((c) => `<span class="badge curse">C: ${c}</span>`).join(' ')}
         ${state.roomLockTrack === i ? '<span class="badge powerup">LOCKED</span>' : ''}
+        ${state.curseTargetTrackIndex === i ? '<span class="badge curse">CURSE TARGET</span>' : ''}
       </div>
     </div>
   `
@@ -105,6 +114,54 @@ function renderPowerUpPanel(): void {
   }
 }
 
+function renderTimer(): void {
+  const state = getState();
+  if (!state) return;
+
+  const timerEl = $('timer');
+  if (!timerEl) return;
+
+  if (state.timerEndTime) {
+    timerEl.classList.remove('hidden');
+    updateTimerDisplay();
+    
+    // Clear existing interval
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Update every second
+    timerInterval = setInterval(() => {
+      updateTimerDisplay();
+    }, 1000);
+  } else {
+    timerEl.classList.add('hidden');
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+}
+
+function updateTimerDisplay(): void {
+  const state = getState();
+  if (!state?.timerEndTime) return;
+
+  const timerEl = $('timer');
+  if (!timerEl) return;
+
+  const remaining = Math.max(0, state.timerEndTime - Date.now());
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  
+  timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  
+  if (remaining <= 0) {
+    timerEl.textContent = 'TIME UP!';
+    timerEl.classList.add('expired');
+  } else if (remaining <= 60000) {
+    timerEl.classList.add('warning');
+  }
+}
+
 function renderRoom(): void {
   const state = getState();
   if (!state) return;
@@ -139,6 +196,28 @@ function renderRoom(): void {
       }
       break;
 
+    case 'track-type-reselect':
+      // Must select a DIFFERENT track type (abandon original)
+      const currentType = state.currentTrack?.type;
+      const otherTypes = TRACK_TYPES.filter(([, , name]) => name !== currentType);
+      content.innerHTML = `
+        <h3>Abandon Track Type</h3>
+        <p style="color: var(--muted); margin-bottom: 0.5rem;">
+          Original type: <strong>${currentType}</strong><br>
+          Select a different type:
+        </p>
+        <select id="track-type-reselect">
+          ${otherTypes.map(([, , name]) => `<option value="${name}">${name}</option>`).join('')}
+        </select>
+        <button id="confirm-reselect" style="margin-top: 0.5rem;">Confirm New Type</button>
+      `;
+      onClick('confirm-reselect', () => {
+        const select = $('track-type-reselect') as HTMLSelectElement;
+        reselectTrackType(select.value);
+        render();
+      });
+      break;
+
     case 'curse-check':
       content.innerHTML = `
         <h3>Track: ${state.currentTrack?.type}</h3>
@@ -166,8 +245,12 @@ function renderRoom(): void {
       break;
 
     case 'mutation':
+      const doubleMutationWarning = state.doubleMutationNextRoom 
+        ? '<p class="badge curse" style="margin-bottom: 0.5rem;">Double Mutation Room!</p>' 
+        : '';
       content.innerHTML = `
         <h3>Track: ${state.currentTrack?.type}</h3>
+        ${doubleMutationWarning}
         <p>Roll for Mutation</p>
         <button id="roll-mutation">Roll d100</button>
       `;
@@ -180,7 +263,7 @@ function renderRoom(): void {
     case 'mutation-result':
       content.innerHTML = `
         <div class="roll-result">
-          <div class="roll-number">${state.currentMutation?.roll}</div>
+          <div class="roll-number">${state.currentMutation?.roll || '-'}</div>
           <div class="roll-text">${state.currentMutation?.effect}</div>
         </div>
         <button id="accept-mutation">Accept & Compose</button>
@@ -192,9 +275,15 @@ function renderRoom(): void {
       break;
 
     case 'compose':
+      const mutations = state.currentTrack?.mutations || [];
+      const mutationDisplay = mutations.length > 0
+        ? mutations.map(m => `<p class="badge mutation" style="margin-bottom: 0.25rem;">Mutation: ${m}</p>`).join('')
+        : '';
+      
       content.innerHTML = `
         <h3>Composing: ${state.currentTrack?.type}</h3>
-        ${state.currentTrack?.mutation ? `<p class="badge mutation">Mutation: ${state.currentTrack.mutation}</p>` : ''}
+        ${state.currentTrack?.originalType ? `<p class="muted">Originally: ${state.currentTrack.originalType}</p>` : ''}
+        ${mutationDisplay}
         <p style="margin-top: 0.5rem; color: var(--muted);">Create your track following the constraints above.</p>
         <button id="finalize-room" style="margin-top: 0.5rem;">Finalize Room</button>
       `;
@@ -246,6 +335,12 @@ function checkEndConditions(): void {
 export function endRun(): void {
   const state = getState();
   if (!state) return;
+
+  // Clear timer
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
 
   showScreen('end');
 
