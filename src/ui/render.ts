@@ -94,10 +94,11 @@ function renderPowerUpPanel(): void {
   const panel = $('powerup-panel');
   if (!panel) return;
 
+  const validPhases = ['track-type', 'curse-check', 'mutation', 'mutation-result', 'curse-result', 'compose'];
   const canUse =
     state.powerUps > 0 &&
     !state.usedPowerUpThisRoom &&
-    ['curse-check', 'mutation', 'curse-result'].includes(state.phase);
+    validPhases.includes(state.phase);
 
   panel.classList.toggle('hidden', !canUse);
 
@@ -106,9 +107,9 @@ function renderPowerUpPanel(): void {
       const type = btn.dataset.type;
       let disabled = false;
 
-      if (type === 'lock' && state.usedRoomLock) disabled = true;
+      if (type === 'lock' && (state.usedRoomLock || state.tracks.length === 0)) disabled = true;
       if (type === 'painshift' && (state.room <= 3 || state.phase !== 'curse-check')) disabled = true;
-      if (type === 'breath' && state.usedOneLastBreath) disabled = true;
+      if (type === 'breath' && (state.usedOneLastBreath || state.curses.length === 0)) disabled = true;
       if (type === 'redirect' && state.phase !== 'curse-result') disabled = true;
       if (type === 'split' && state.phase !== 'curse-result') disabled = true;
 
