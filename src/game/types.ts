@@ -5,6 +5,7 @@ export type Phase =
   | 'track-type-reselect'
   | 'curse-check'
   | 'curse-target-select'
+  | 'curse-apply-last-select'
   | 'curse-result'
   | 'mutation'
   | 'mutation-result'
@@ -79,6 +80,7 @@ export interface GameState {
   pendingCurseTargets: number[];
   curseTargetMethod: CurseTargetMethod | null;
   curseTargetRoll: number | null;
+  pendingTargetCurseRolls: number;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

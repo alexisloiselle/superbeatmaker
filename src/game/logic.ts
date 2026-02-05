@@ -36,6 +36,16 @@ export function getMixCurseEntry(rollValue: number): MixCurseEntry {
   return getFromRecord(rollValue, MIX_CURSES);
 }
 
+function getTargetCurseEntryByEffect(effectText: string): TargetCurseEntry | null {
+  for (const key of Object.keys(TARGET_CURSES)) {
+    const entry = TARGET_CURSES[Number(key)];
+    if (entry.text === effectText) {
+      return entry;
+    }
+  }
+  return null;
+}
+
 export function getMutation(rollValue: number): string {
   return getMutationEntry(rollValue).text;
 }
@@ -203,15 +213,48 @@ function resolveAutomaticTarget(method: CurseTargetMethod): number | null {
   return applyOffsetToTarget(anchorIndex, offset);
 }
 
-function rollTargetCurse(): void {
+function rollTargetCurse(depth = 0): void {
   const state = getState();
   if (!state) return;
+
+  if (depth > 10) {
+    addLogEntry('Max curse depth reached, stopping');
+    updateState({ phase: 'mutation' });
+    return;
+  }
 
   const curseRoll = roll();
   const entry = getTargetCurseEntry(curseRoll);
 
-  const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect: entry.text };
   addLogEntry(`Target Curse Roll: ${curseRoll} → ${entry.text}`);
+
+  if (entry.mechanics?.rerollTwice) {
+    addLogEntry('Re-rolling twice for two curses');
+    rollTargetCurse(depth + 1);
+    rollTargetCurse(depth + 1);
+    return;
+  }
+
+  if (entry.mechanics?.applyLastCurse) {
+    if (state.curses.length === 0) {
+      addLogEntry('First curse - ignoring apply last curse');
+      updateState({ phase: 'mutation' });
+      return;
+    }
+    
+    const lastCurse = state.curses[state.curses.length - 1];
+    addLogEntry(`Apply last curse: ${lastCurse.effect}`);
+    
+    const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect: lastCurse.effect };
+    updateState({
+      currentCurse: curse,
+      phase: 'curse-apply-last-select',
+      pendingCurseTargets: [],
+    });
+    return;
+  }
+
+  const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect: entry.text };
 
   const available = getAvailableTrackIndices();
   
@@ -319,6 +362,18 @@ export function selectCurseTarget(trackIndex: number): void {
   });
 }
 
+export function selectApplyLastCurseTarget(trackIndex: number): void {
+  const state = getState();
+  if (!state?.currentCurse) return;
+
+  addLogEntry(`Applying last curse to Track ${trackIndex + 1}`);
+
+  updateState({
+    phase: 'curse-result',
+    pendingCurseTargets: [trackIndex],
+  });
+}
+
 function rollMixCurse(): void {
   const state = getState();
   if (!state) return;
@@ -346,13 +401,19 @@ export function acceptCurse(): void {
   const state = getState();
   if (!state?.currentCurse) return;
 
-  const curseEntry = state.currentCurse.type === 'Target Curse'
+  let curseEntry = state.currentCurse.type === 'Target Curse'
     ? getTargetCurseEntry(state.currentCurse.roll)
     : getMixCurseEntry(state.currentCurse.roll);
 
+  if (state.currentCurse.type === 'Target Curse' && (curseEntry as TargetCurseEntry).mechanics?.applyLastCurse) {
+    const originalEntry = getTargetCurseEntryByEffect(state.currentCurse.effect);
+    if (originalEntry && !originalEntry.mechanics?.applyLastCurse && !originalEntry.mechanics?.rerollTwice) {
+      curseEntry = originalEntry;
+    }
+  }
+
   const curses = [...state.curses, state.currentCurse];
   let tracks = [...state.tracks];
-  let currentTrack = state.currentTrack ? { ...state.currentTrack } : null;
   let forcedRooms = state.forcedRooms;
   let doubleMutationNextRoom = state.doubleMutationNextRoom;
   let curseTargetTrackIndex = state.curseTargetTrackIndex;
@@ -374,10 +435,6 @@ export function acceptCurse(): void {
           addLogEntry(`Track ${targetIdx + 1} is now the target of all future curses`);
         }
       }
-    }
-    
-    if (currentTrack) {
-      currentTrack.curses = [...currentTrack.curses, state.currentCurse.effect];
     }
     
     if (targetEntry.mechanics?.forceRoom) {
@@ -403,20 +460,40 @@ export function acceptCurse(): void {
     const mixEntry = curseEntry as MixCurseEntry;
     if (mixEntry.mechanics?.rollTargetCurses) {
       addLogEntry(`Rolling ${mixEntry.mechanics.rollTargetCurses} Target Curses`);
+      updateState({
+        curses,
+        tracks,
+        forcedRooms,
+        doubleMutationNextRoom,
+        curseTargetTrackIndex,
+        currentCurse: null,
+        pendingCurseTargets: [],
+        pendingTargetCurseRolls: mixEntry.mechanics.rollTargetCurses,
+      });
+      rollTargetCurse();
+      return;
     }
   }
+
+  const nextPhase = state.pendingTargetCurseRolls > 1 ? undefined : 'mutation';
+  const remainingRolls = state.pendingTargetCurseRolls > 0 ? state.pendingTargetCurseRolls - 1 : 0;
 
   updateState({
     curses,
     tracks,
-    currentTrack,
     forcedRooms,
     doubleMutationNextRoom,
     curseTargetTrackIndex,
     currentCurse: null,
     pendingCurseTargets: [],
-    phase: 'mutation',
+    pendingTargetCurseRolls: remainingRolls,
+    ...(nextPhase ? { phase: nextPhase } : {}),
   });
+
+  if (remainingRolls > 0) {
+    addLogEntry(`${remainingRolls} Target Curse(s) remaining`);
+    rollTargetCurse();
+  }
 }
 
 interface MutationRollResult {
@@ -479,11 +556,17 @@ function rollSingleMutation(mode: string, room: number, isSecondMutation = false
     return { roll: r, effect: 'No Mutation.' };
   }
 
+  if (entry.mechanics?.takeCurseInstead) {
+    addLogEntry('Taking a Target Curse instead of mutation');
+    return { roll: r, effect: '__TAKE_CURSE_INSTEAD__' };
+  }
+
   if (entry.mechanics?.deleteIfHighRoll) {
     const deleteRoll = roll();
     addLogEntry(`Delete check roll: ${deleteRoll} (need ${entry.mechanics.deleteIfHighRoll}+)`);
     if (deleteRoll >= entry.mechanics.deleteIfHighRoll) {
       addLogEntry('Track will be deleted!');
+      return { roll: r, effect: '__DELETE_TRACK__' };
     }
   }
 
@@ -507,6 +590,12 @@ export function rollMutation(): void {
     result = rollSingleMutation(state.mode, state.room);
   }
   
+  if (result.effect === '__TAKE_CURSE_INSTEAD__') {
+    updateState({ doubleMutationNextRoom: false });
+    rollTargetCurse();
+    return;
+  }
+  
   const mutation: Mutation = { roll: result.roll, effect: result.effect };
   
   updateState({
@@ -526,8 +615,14 @@ export function acceptMutation(): void {
   let timerEndTime: number | null = null;
   let pendingTrackTypeReselect = false;
 
+  if (state.currentMutation.effect.includes('__DELETE_TRACK__')) {
+    currentTrack.deleted = true;
+    addLogEntry('Track marked for deletion');
+  }
+
   const isNoEffect = state.currentMutation.effect === 'No Mutation.' || 
-                     state.currentMutation.effect.startsWith('No Mutation');
+                     state.currentMutation.effect.startsWith('No Mutation') ||
+                     state.currentMutation.effect.includes('__DELETE_TRACK__');
   
   if (!isNoEffect) {
     const mutationText = state.currentMutation.effect;
@@ -618,6 +713,7 @@ export function nextRoom(): void {
     pendingCurseTargets: [],
     curseTargetMethod: null,
     curseTargetRoll: null,
+    pendingTargetCurseRolls: 0,
   });
 }
 

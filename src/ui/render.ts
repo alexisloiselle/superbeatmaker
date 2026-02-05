@@ -7,6 +7,7 @@ import {
   rollCurseCheck,
   acceptCurse,
   selectCurseTarget,
+  selectApplyLastCurseTarget,
   rollMutation,
   acceptMutation,
   finalizeRoom,
@@ -256,6 +257,34 @@ function renderRoom(): void {
         btn.onclick = () => {
           const index = parseInt(btn.dataset.index || '0', 10);
           selectCurseTarget(index);
+          render();
+        };
+      });
+      break;
+
+    case 'curse-apply-last-select':
+      const applyLastAvailableTracks = state.tracks
+        .map((t, i) => ({ track: t, index: i }))
+        .filter(({ track, index }) => !track.deleted && index !== state.roomLockTrack);
+      
+      content.innerHTML = `
+        <div class="roll-result">
+          <div class="roll-text">Apply last curse to another track:</div>
+          <div class="roll-text" style="margin-top: 0.5rem;"><strong>${state.currentCurse?.effect}</strong></div>
+        </div>
+        <h3 style="margin-top: 1rem;">Select a track</h3>
+        <div class="track-select-list">
+          ${applyLastAvailableTracks.map(({ track, index }) => `
+            <button class="track-select-btn" data-index="${index}">
+              Room ${track.room}: ${track.type}
+            </button>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll<HTMLButtonElement>('.track-select-btn').forEach(btn => {
+        btn.onclick = () => {
+          const index = parseInt(btn.dataset.index || '0', 10);
+          selectApplyLastCurseTarget(index);
           render();
         };
       });

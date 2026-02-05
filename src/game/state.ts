@@ -57,6 +57,7 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     pendingCurseTargets: [],
     curseTargetMethod: null,
     curseTargetRoll: null,
+    pendingTargetCurseRolls: 0,
   };
 }
 
