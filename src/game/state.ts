@@ -59,6 +59,8 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     curseTargetRoll: null,
     pendingTargetCurseRolls: 0,
     painShiftActive: false,
+    conditionalPowerUp: false,
+    powerUpBlockedThisRoom: false,
   };
 }
 

@@ -11,7 +11,8 @@ export type Phase =
   | 'mutation-result'
   | 'compose'
   | 'powerup-roll'
-  | 'next-room';
+  | 'next-room'
+  | 'room-lock-select';
 
 export type CurseTargetMethod = 
   | 'previous'
@@ -82,6 +83,8 @@ export interface GameState {
   curseTargetRoll: number | null;
   pendingTargetCurseRolls: number;
   painShiftActive: boolean;
+  conditionalPowerUp: boolean;
+  powerUpBlockedThisRoom: boolean;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

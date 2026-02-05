@@ -690,13 +690,25 @@ export function rollPowerUp(): void {
   const state = getState();
   if (!state) return;
 
+  if (state.powerUpBlockedThisRoom) {
+    addLogEntry('Power-Up earning blocked (lost conditional last room)');
+    updateState({ phase: 'next-room', powerUpBlockedThisRoom: false });
+    return;
+  }
+
   const r = roll();
   addLogEntry(`Power-Up Roll: ${r}`);
 
   let powerUps = state.powerUps;
+  let conditionalPowerUp = false;
+  
   if (r >= 98) {
     powerUps += 2;
     addLogEntry('Gained 2 Power-Ups!');
+  } else if (r >= 86) {
+    powerUps += 1;
+    conditionalPowerUp = true;
+    addLogEntry('Gained 1 Conditional Power-Up (must use next room or lose it)');
   } else if (r >= 76) {
     powerUps += 1;
     addLogEntry('Gained 1 Power-Up');
@@ -704,12 +716,21 @@ export function rollPowerUp(): void {
     addLogEntry('No Power-Up gained');
   }
 
-  updateState({ powerUps, phase: 'next-room' });
+  updateState({ powerUps, conditionalPowerUp, phase: 'next-room' });
 }
 
 export function nextRoom(): void {
   const state = getState();
   if (!state) return;
+
+  let powerUps = state.powerUps;
+  let powerUpBlockedThisRoom = false;
+
+  if (state.conditionalPowerUp && !state.usedPowerUpThisRoom) {
+    powerUps = Math.max(0, powerUps - 1);
+    powerUpBlockedThisRoom = true;
+    addLogEntry('Conditional Power-Up lost (not used this room)');
+  }
 
   updateState({
     room: state.room + 1,
@@ -725,6 +746,24 @@ export function nextRoom(): void {
     curseTargetRoll: null,
     pendingTargetCurseRolls: 0,
     painShiftActive: false,
+    conditionalPowerUp: false,
+    powerUps,
+    powerUpBlockedThisRoom,
+  });
+}
+
+export function selectRoomLockTarget(trackIndex: number): void {
+  const state = getState();
+  if (!state) return;
+
+  addLogEntry(`Room Lock: Track ${trackIndex + 1} is now protected`);
+  
+  updateState({
+    roomLockTrack: trackIndex,
+    usedRoomLock: true,
+    phase: state.currentCurse ? 'curse-result' : 
+           state.currentMutation ? 'mutation-result' : 
+           state.currentTrack ? 'compose' : 'track-type',
   });
 }
 
@@ -735,6 +774,7 @@ export function usePowerUp(type: string): void {
   const updates: Partial<typeof state> = {
     powerUps: state.powerUps - 1,
     usedPowerUpThisRoom: true,
+    conditionalPowerUp: false,
   };
 
   switch (type) {
@@ -745,9 +785,10 @@ export function usePowerUp(type: string): void {
       break;
     case 'lock':
       if (!state.usedRoomLock && state.tracks.length > 0) {
-        updates.roomLockTrack = state.tracks.length - 1;
-        updates.usedRoomLock = true;
-        addLogEntry(`Power-Up: Room Lock - Protected track ${state.tracks.length}`);
+        addLogEntry('Power-Up: Room Lock - Select a track to protect');
+        updates.phase = 'room-lock-select';
+        updateState(updates);
+        return;
       }
       break;
     case 'painshift':

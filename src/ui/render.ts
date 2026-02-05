@@ -8,6 +8,7 @@ import {
   acceptCurse,
   selectCurseTarget,
   selectApplyLastCurseTarget,
+  selectRoomLockTarget,
   rollMutation,
   acceptMutation,
   finalizeRoom,
@@ -374,6 +375,31 @@ function renderRoom(): void {
         rollPowerUp();
         checkEndConditions();
         render();
+      });
+      break;
+
+    case 'room-lock-select':
+      const lockAvailableTracks = state.tracks
+        .map((t, i) => ({ track: t, index: i }))
+        .filter(({ track }) => !track.deleted);
+      
+      content.innerHTML = `
+        <h3>Room Lock: Select a Track to Protect</h3>
+        <p class="muted" style="margin-bottom: 0.5rem;">This track will be immune to future Target Curses</p>
+        <div class="track-select-list">
+          ${lockAvailableTracks.map(({ track, index }) => `
+            <button class="track-select-btn" data-index="${index}">
+              Room ${track.room}: ${track.type}
+            </button>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll<HTMLButtonElement>('.track-select-btn').forEach(btn => {
+        btn.onclick = () => {
+          const index = parseInt(btn.dataset.index || '0', 10);
+          selectRoomLockTarget(index);
+          render();
+        };
       });
       break;
 
