@@ -475,8 +475,17 @@ export function acceptCurse(): void {
     }
   }
 
-  const nextPhase = state.pendingTargetCurseRolls > 1 ? undefined : 'mutation';
   const remainingRolls = state.pendingTargetCurseRolls > 0 ? state.pendingTargetCurseRolls - 1 : 0;
+  
+  let nextPhase: typeof state.phase | undefined;
+  if (remainingRolls > 0) {
+    nextPhase = undefined;
+  } else if (state.painShiftActive) {
+    nextPhase = 'compose';
+    addLogEntry('Pain Shift: Skipping mutation');
+  } else {
+    nextPhase = 'mutation';
+  }
 
   updateState({
     curses,
@@ -487,6 +496,7 @@ export function acceptCurse(): void {
     currentCurse: null,
     pendingCurseTargets: [],
     pendingTargetCurseRolls: remainingRolls,
+    painShiftActive: remainingRolls > 0 ? state.painShiftActive : false,
     ...(nextPhase ? { phase: nextPhase } : {}),
   });
 
@@ -714,6 +724,7 @@ export function nextRoom(): void {
     curseTargetMethod: null,
     curseTargetRoll: null,
     pendingTargetCurseRolls: 0,
+    painShiftActive: false,
   });
 }
 
@@ -740,10 +751,11 @@ export function usePowerUp(type: string): void {
       }
       break;
     case 'painshift':
-      addLogEntry('Power-Up: Pain Shift - No mutation, guaranteed curse');
-      updates.currentMutation = { roll: 0, effect: 'No Mutation (Pain Shift)' };
-      updates.phase = 'mutation-result';
-      break;
+      addLogEntry('Power-Up: Pain Shift - No mutation, guaranteed Target Curse');
+      updates.painShiftActive = true;
+      updateState(updates);
+      rollTargetCurse();
+      return;
     case 'split':
       addLogEntry('Power-Up: Split the Wound - Curse applied at half strength');
       break;

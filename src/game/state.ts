@@ -58,6 +58,7 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     curseTargetMethod: null,
     curseTargetRoll: null,
     pendingTargetCurseRolls: 0,
+    painShiftActive: false,
   };
 }
 

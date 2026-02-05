@@ -55,6 +55,7 @@
             <span id="timer" class="badge timer hidden">5:00</span>
           </div>
           <div class="flex">
+            <button id="cheatsheet-btn" class="small secondary">Rules</button>
             <button id="export-btn" class="small secondary">Export</button>
             <button id="end-run" class="small danger">End Run</button>
           </div>
@@ -70,6 +71,7 @@
       <!-- Power-Ups Panel -->
       <div id="powerup-panel" class="card hidden">
         <h2>Use Power-Up</h2>
+        <p class="muted" style="margin-bottom: 0.5rem;">Optional - game continues without using one</p>
         <div class="grid grid-2">
           <button class="secondary powerup-btn" data-type="redirect">Curse Redirect</button>
           <button class="secondary powerup-btn" data-type="lock">Room Lock</button>
@@ -77,7 +79,6 @@
           <button class="secondary powerup-btn" data-type="split">Split the Wound</button>
           <button class="secondary powerup-btn" data-type="breath">One Last Breath</button>
         </div>
-        <button id="skip-powerup" class="secondary" style="margin-top: 0.5rem; width: 100%;">Skip</button>
       </div>
       
       <!-- Tracks List -->
@@ -105,6 +106,70 @@
           <button id="new-run">New Run</button>
           <button id="export-final" class="secondary">Export Run</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cheat Sheet Modal -->
+  <div id="cheatsheet-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Super Beatmaker Rules</h2>
+        <button id="close-cheatsheet" class="small secondary">Close</button>
+      </div>
+      <div class="modal-body">
+        <h3>System Flow</h3>
+        <ol>
+          <li>Declare Track Type</li>
+          <li>Curse Check (01-70: No Curse, 71-98: Target Curse, 99-100: Mix Curse)</li>
+          <li>Roll Mutation</li>
+          <li>Compose Track</li>
+          <li>Room Finalizes</li>
+          <li>Roll for Power-Up (if did not use)</li>
+        </ol>
+
+        <h3>Power-Ups</h3>
+        <ul>
+          <li><strong>Curse Redirect:</strong> Reroll what Track receives a Curse</li>
+          <li><strong>Room Lock:</strong> (1/Run) Prevent a Track from future Target Curses</li>
+          <li><strong>Pain Shift:</strong> (Room 4+) No Mutation, guaranteed Target Curse</li>
+          <li><strong>Split the Wound:</strong> Apply curse to 2 Tracks at half strength</li>
+          <li><strong>One Last Breath:</strong> (1/Run) Reverse one Curse, force final Room</li>
+        </ul>
+
+        <h3>Earning Power-Ups</h3>
+        <p>After Room without using Power-Up: 01-75: None, 76-97: +1, 98-100: +2</p>
+
+        <h3>Curse Target (2 rolls)</h3>
+        <p><strong>First:</strong> 01-20: Previous, 21-40: Oldest, 41-60: Loudest, 61-80: Quietest, 81-95: Choice, 96-100: Two Targets</p>
+        <p><strong>Second:</strong> 01-32: Track Before, 33-66: That Track, 67-100: Track After</p>
+
+        <h3>Key Mutations</h3>
+        <ul>
+          <li>63-64: Roll twice, apply both</li>
+          <li>71-72: Abandon Track Type</li>
+          <li>85-86: 5-minute timer</li>
+          <li>93-94: Take Target Curse instead</li>
+          <li>97-98: Roll 80+ = delete Track</li>
+        </ul>
+
+        <h3>Key Target Curses</h3>
+        <ul>
+          <li>33-36: Force Room + Double Mutation</li>
+          <li>45-48: Track becomes permanent curse target</li>
+          <li>57-60: Delete Track</li>
+          <li>93-96: Apply last Curse to another Track</li>
+          <li>97-100: Re-roll twice</li>
+        </ul>
+
+        <h3>Key Mix Curses</h3>
+        <ul>
+          <li>01: This is the last Room</li>
+          <li>92-100: Roll three Target Curses</li>
+        </ul>
+
+        <h3>End Condition</h3>
+        <p>Run ends when you declare it over with no forced Rooms. If rules followed, you win!</p>
       </div>
     </div>
   </div>

@@ -69,12 +69,30 @@ function newRun(): void {
   showScreen('setup');
 }
 
+function toggleCheatSheet(show: boolean): void {
+  const modal = $('cheatsheet-modal');
+  if (modal) {
+    modal.classList.toggle('hidden', !show);
+  }
+}
+
 function init(): void {
   onClick('start-run', startRun);
   onClick('continue-run', continueRun);
   onClick('import-btn', handleImport);
   onClick('end-run', endRun);
   onClick('new-run', newRun);
+  onClick('cheatsheet-btn', () => toggleCheatSheet(true));
+  onClick('close-cheatsheet', () => toggleCheatSheet(false));
+
+  const cheatsheetModal = $('cheatsheet-modal');
+  if (cheatsheetModal) {
+    cheatsheetModal.addEventListener('click', (e) => {
+      if (e.target === cheatsheetModal) {
+        toggleCheatSheet(false);
+      }
+    });
+  }
 
   const importInput = $('import-input');
   if (importInput) {

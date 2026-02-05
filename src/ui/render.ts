@@ -106,7 +106,7 @@ function renderPowerUpPanel(): void {
       let disabled = false;
 
       if (type === 'lock' && state.usedRoomLock) disabled = true;
-      if (type === 'painshift' && state.room <= 3) disabled = true;
+      if (type === 'painshift' && (state.room <= 3 || state.phase !== 'curse-check')) disabled = true;
       if (type === 'breath' && state.usedOneLastBreath) disabled = true;
       if (type === 'redirect' && state.phase !== 'curse-result') disabled = true;
       if (type === 'split' && state.phase !== 'curse-result') disabled = true;
@@ -447,8 +447,6 @@ export function setupPowerUpButtons(): void {
       }
     };
   });
-
-  onClick('skip-powerup', () => renderPowerUpPanel());
 }
 
 export function setupExportButton(): void {

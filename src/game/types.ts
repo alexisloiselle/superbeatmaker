@@ -81,6 +81,7 @@ export interface GameState {
   curseTargetMethod: CurseTargetMethod | null;
   curseTargetRoll: number | null;
   pendingTargetCurseRolls: number;
+  painShiftActive: boolean;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

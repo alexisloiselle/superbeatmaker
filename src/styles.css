@@ -297,6 +297,72 @@ select {
   display: none;
 }
 
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 600px;
+  max-height: 80vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-body {
+  padding: 1rem;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.modal-body h3 {
+  color: var(--accent);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-body h3:first-child {
+  margin-top: 0;
+}
+
+.modal-body ul, .modal-body ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-body li {
+  margin-bottom: 0.25rem;
+}
+
+.modal-body p {
+  margin-bottom: 0.5rem;
+}
+
 @media (max-width: 600px) {
   .container {
     padding: 0.5rem;
