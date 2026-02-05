@@ -126,6 +126,12 @@ export const CURSE_TARGETS_FIRST: RangeTable = [
   [96, 100, 'Roll again for two Targets'],
 ];
 
+export const CURSE_TARGETS_SECOND: RangeTable = [
+  [1, 32, 'Track Before'],
+  [33, 66, 'That Track'],
+  [67, 100, 'Track After'],
+];
+
 export const RUN_TAGS: [string, string][] = [
   ['Tragic', 'The Run collapsed in the last Room.'],
   ['Cursed', 'Survived 3 or more Curses.'],

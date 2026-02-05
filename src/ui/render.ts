@@ -6,6 +6,7 @@ import {
   reselectTrackType,
   rollCurseCheck,
   acceptCurse,
+  selectCurseTarget,
   rollMutation,
   acceptMutation,
   finalizeRoom,
@@ -227,11 +228,55 @@ function renderRoom(): void {
       });
       break;
 
+    case 'curse-target-select':
+      const methodLabel = state.curseTargetMethod === 'loudest' 
+        ? 'Select the LOUDEST track'
+        : state.curseTargetMethod === 'quietest'
+        ? 'Select the QUIETEST track'
+        : 'Select any track';
+      const availableTracks = state.tracks
+        .map((t, i) => ({ track: t, index: i }))
+        .filter(({ track, index }) => !track.deleted && index !== state.roomLockTrack);
+      
+      content.innerHTML = `
+        <div class="roll-result">
+          <div class="roll-number">${state.curseTargetRoll}</div>
+          <div class="roll-text">${state.currentCurse?.type}: ${state.currentCurse?.effect}</div>
+        </div>
+        <h3 style="margin-top: 1rem;">${methodLabel}</h3>
+        <div class="track-select-list">
+          ${availableTracks.map(({ track, index }) => `
+            <button class="track-select-btn" data-index="${index}">
+              Room ${track.room}: ${track.type}
+            </button>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll<HTMLButtonElement>('.track-select-btn').forEach(btn => {
+        btn.onclick = () => {
+          const index = parseInt(btn.dataset.index || '0', 10);
+          selectCurseTarget(index);
+          render();
+        };
+      });
+      break;
+
     case 'curse-result':
+      const targetTrackNames = state.pendingCurseTargets
+        .map(idx => state.tracks[idx])
+        .filter(Boolean)
+        .map(t => `Room ${t.room}: ${t.type}`);
+      const targetDisplay = state.currentCurse?.type === 'Target Curse' && targetTrackNames.length > 0
+        ? `<p class="muted" style="margin-top: 0.5rem;">Target: ${targetTrackNames.join(', ')}</p>`
+        : state.currentCurse?.type === 'Target Curse' 
+        ? '<p class="muted" style="margin-top: 0.5rem;">No available tracks to curse</p>'
+        : '';
+      
       content.innerHTML = `
         <div class="roll-result">
           <div class="roll-number">${state.currentCurse?.roll}</div>
           <div class="roll-text">${state.currentCurse?.type}: ${state.currentCurse?.effect}</div>
+          ${targetDisplay}
         </div>
         <button id="accept-curse">Accept Curse</button>
       `;

@@ -4,12 +4,21 @@ export type Phase =
   | 'track-type'
   | 'track-type-reselect'
   | 'curse-check'
+  | 'curse-target-select'
   | 'curse-result'
   | 'mutation'
   | 'mutation-result'
   | 'compose'
   | 'powerup-roll'
   | 'next-room';
+
+export type CurseTargetMethod = 
+  | 'previous'
+  | 'oldest'
+  | 'loudest'
+  | 'quietest'
+  | 'player-choice'
+  | 'two-targets';
 
 export interface Track {
   room: number;
@@ -67,6 +76,9 @@ export interface GameState {
   curseTargetTrackIndex: number | null;
   timerEndTime: number | null;
   pendingTrackTypeReselect: boolean;
+  pendingCurseTargets: number[];
+  curseTargetMethod: CurseTargetMethod | null;
+  curseTargetRoll: number | null;
 }
 
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';

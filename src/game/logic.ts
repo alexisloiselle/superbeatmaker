@@ -1,5 +1,5 @@
-import type { RangeTable, Curse, Mutation, MutationEntry, TargetCurseEntry, MixCurseEntry } from './types';
-import { TRACK_TYPES, MUTATIONS, TARGET_CURSES, MIX_CURSES } from './data';
+import type { RangeTable, Curse, Mutation, MutationEntry, TargetCurseEntry, MixCurseEntry, CurseTargetMethod } from './types';
+import { TRACK_TYPES, MUTATIONS, TARGET_CURSES, MIX_CURSES, CURSE_TARGETS_FIRST, CURSE_TARGETS_SECOND } from './data';
 import { getState, updateState, addLogEntry, createTrack } from './state';
 
 export function roll(max = 100): number {
@@ -123,6 +123,86 @@ export function rollCurseCheck(): void {
   }
 }
 
+function getAvailableTrackIndices(): number[] {
+  const state = getState();
+  if (!state) return [];
+  
+  return state.tracks
+    .map((track, idx) => ({ track, idx }))
+    .filter(({ track, idx }) => !track.deleted && idx !== state.roomLockTrack)
+    .map(({ idx }) => idx);
+}
+
+function getCurseTargetMethod(rollValue: number): CurseTargetMethod {
+  const result = getFromTable(rollValue, CURSE_TARGETS_FIRST);
+  switch (result) {
+    case 'Previous Track': return 'previous';
+    case 'Oldest Track': return 'oldest';
+    case 'Loudest Track': return 'loudest';
+    case 'Quietest Track': return 'quietest';
+    case "Player's Choice": return 'player-choice';
+    case 'Roll again for two Targets': return 'two-targets';
+    default: return 'previous';
+  }
+}
+
+function getSecondRollOffset(rollValue: number): -1 | 0 | 1 {
+  const result = getFromTable(rollValue, CURSE_TARGETS_SECOND);
+  switch (result) {
+    case 'Track Before': return -1;
+    case 'That Track': return 0;
+    case 'Track After': return 1;
+    default: return 0;
+  }
+}
+
+function applyOffsetToTarget(anchorIndex: number, offset: -1 | 0 | 1): number {
+  const state = getState();
+  if (!state) return anchorIndex;
+  
+  const available = getAvailableTrackIndices();
+  if (available.length === 0) return anchorIndex;
+  
+  const targetIndex = anchorIndex + offset;
+  
+  if (targetIndex < 0 || targetIndex >= state.tracks.length) {
+    return anchorIndex;
+  }
+  
+  if (state.tracks[targetIndex].deleted || targetIndex === state.roomLockTrack) {
+    return anchorIndex;
+  }
+  
+  return targetIndex;
+}
+
+function resolveAutomaticTarget(method: CurseTargetMethod): number | null {
+  const state = getState();
+  if (!state) return null;
+  
+  const available = getAvailableTrackIndices();
+  if (available.length === 0) return null;
+  
+  let anchorIndex: number;
+  switch (method) {
+    case 'previous':
+      anchorIndex = available[available.length - 1];
+      break;
+    case 'oldest':
+      anchorIndex = available[0];
+      break;
+    default:
+      return null;
+  }
+  
+  const secondRoll = roll();
+  const offset = getSecondRollOffset(secondRoll);
+  const offsetLabel = offset === -1 ? 'Track Before' : offset === 1 ? 'Track After' : 'That Track';
+  addLogEntry(`Second Roll: ${secondRoll} → ${offsetLabel}`);
+  
+  return applyOffsetToTarget(anchorIndex, offset);
+}
+
 function rollTargetCurse(): void {
   const state = getState();
   if (!state) return;
@@ -132,7 +212,111 @@ function rollTargetCurse(): void {
 
   const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect: entry.text };
   addLogEntry(`Target Curse Roll: ${curseRoll} → ${entry.text}`);
-  updateState({ currentCurse: curse, phase: 'curse-result' });
+
+  const available = getAvailableTrackIndices();
+  
+  if (available.length === 0) {
+    addLogEntry('No available tracks to curse');
+    updateState({ currentCurse: curse, phase: 'curse-result', pendingCurseTargets: [] });
+    return;
+  }
+
+  if (state.curseTargetTrackIndex !== null) {
+    const targetIdx = state.curseTargetTrackIndex;
+    if (!state.tracks[targetIdx]?.deleted && targetIdx !== state.roomLockTrack) {
+      addLogEntry(`Curse Target: Track ${targetIdx + 1} (permanent target)`);
+      updateState({ currentCurse: curse, phase: 'curse-result', pendingCurseTargets: [targetIdx] });
+      return;
+    }
+  }
+
+  const targetRoll = roll();
+  const method = getCurseTargetMethod(targetRoll);
+  addLogEntry(`Curse Target Roll: ${targetRoll} → ${method}`);
+
+  if (method === 'two-targets') {
+    addLogEntry('Rolling for two targets');
+    const targets: number[] = [];
+    
+    for (let i = 0; i < 2; i++) {
+      const subRoll = roll();
+      const subMethod = getCurseTargetMethod(subRoll);
+      addLogEntry(`Target ${i + 1} Roll: ${subRoll} → ${subMethod}`);
+      
+      if (subMethod === 'two-targets') {
+        addLogEntry('Nested two-targets, defaulting to previous');
+        const fallbackTarget = resolveAutomaticTarget('previous');
+        if (fallbackTarget !== null) {
+          targets.push(fallbackTarget);
+        }
+      } else if (subMethod === 'loudest' || subMethod === 'quietest' || subMethod === 'player-choice') {
+        updateState({
+          currentCurse: curse,
+          phase: 'curse-target-select',
+          curseTargetMethod: subMethod,
+          curseTargetRoll: targetRoll,
+          pendingCurseTargets: targets,
+        });
+        return;
+      } else {
+        const autoTarget = resolveAutomaticTarget(subMethod);
+        if (autoTarget !== null) {
+          targets.push(autoTarget);
+          addLogEntry(`Target ${i + 1}: Track ${autoTarget + 1}`);
+        }
+      }
+    }
+    
+    updateState({ currentCurse: curse, phase: 'curse-result', pendingCurseTargets: [...new Set(targets)] });
+    return;
+  }
+
+  if (method === 'loudest' || method === 'quietest' || method === 'player-choice') {
+    updateState({
+      currentCurse: curse,
+      phase: 'curse-target-select',
+      curseTargetMethod: method,
+      curseTargetRoll: targetRoll,
+      pendingCurseTargets: [],
+    });
+    return;
+  }
+
+  const autoTarget = resolveAutomaticTarget(method);
+  if (autoTarget !== null) {
+    addLogEntry(`Curse Target: Track ${autoTarget + 1}`);
+  }
+  
+  updateState({
+    currentCurse: curse,
+    phase: 'curse-result',
+    pendingCurseTargets: autoTarget !== null ? [autoTarget] : [],
+  });
+}
+
+export function selectCurseTarget(trackIndex: number): void {
+  const state = getState();
+  if (!state?.currentCurse) return;
+
+  let finalTarget = trackIndex;
+  
+  if (state.curseTargetMethod === 'loudest' || state.curseTargetMethod === 'quietest') {
+    const secondRoll = roll();
+    const offset = getSecondRollOffset(secondRoll);
+    const offsetLabel = offset === -1 ? 'Track Before' : offset === 1 ? 'Track After' : 'That Track';
+    addLogEntry(`Second Roll: ${secondRoll} → ${offsetLabel}`);
+    finalTarget = applyOffsetToTarget(trackIndex, offset);
+  }
+
+  addLogEntry(`Curse Target: Track ${finalTarget + 1}`);
+  const targets = [...state.pendingCurseTargets, finalTarget];
+
+  updateState({
+    phase: 'curse-result',
+    pendingCurseTargets: [...new Set(targets)],
+    curseTargetMethod: null,
+    curseTargetRoll: null,
+  });
 }
 
 function rollMixCurse(): void {
@@ -176,18 +360,20 @@ export function acceptCurse(): void {
   if (state.currentCurse.type === 'Target Curse') {
     const targetEntry = curseEntry as TargetCurseEntry;
     
-    let targetIdx = curseTargetTrackIndex !== null 
-      ? curseTargetTrackIndex 
-      : (tracks.length > 0 ? tracks.length - 1 : -1);
-    
-    if (state.roomLockTrack !== null && targetIdx === state.roomLockTrack) {
-      addLogEntry('Room Lock prevented curse on protected track');
-    } else if (targetIdx >= 0) {
-      tracks[targetIdx] = {
-        ...tracks[targetIdx],
-        curses: [...tracks[targetIdx].curses, state.currentCurse.effect],
-        deleted: targetEntry.mechanics?.deleteTrack ? true : tracks[targetIdx].deleted,
-      };
+    for (const targetIdx of state.pendingCurseTargets) {
+      if (targetIdx >= 0 && targetIdx < tracks.length) {
+        tracks[targetIdx] = {
+          ...tracks[targetIdx],
+          curses: [...tracks[targetIdx].curses, state.currentCurse.effect],
+          deleted: targetEntry.mechanics?.deleteTrack ? true : tracks[targetIdx].deleted,
+        };
+        addLogEntry(`Curse applied to Track ${targetIdx + 1}`);
+        
+        if (targetEntry.mechanics?.becomesCurseTarget) {
+          curseTargetTrackIndex = targetIdx;
+          addLogEntry(`Track ${targetIdx + 1} is now the target of all future curses`);
+        }
+      }
     }
     
     if (currentTrack) {
@@ -213,11 +399,6 @@ export function acceptCurse(): void {
       doubleMutationNextRoom = true;
       addLogEntry('Next room will have two mutations');
     }
-    
-    if (targetEntry.mechanics?.becomesCurseTarget && targetIdx >= 0) {
-      curseTargetTrackIndex = targetIdx;
-      addLogEntry(`Track ${targetIdx + 1} is now the target of all future curses`);
-    }
   } else {
     const mixEntry = curseEntry as MixCurseEntry;
     if (mixEntry.mechanics?.rollTargetCurses) {
@@ -233,6 +414,7 @@ export function acceptCurse(): void {
     doubleMutationNextRoom,
     curseTargetTrackIndex,
     currentCurse: null,
+    pendingCurseTargets: [],
     phase: 'mutation',
   });
 }
@@ -433,6 +615,9 @@ export function nextRoom(): void {
     currentCurse: null,
     timerEndTime: null,
     pendingTrackTypeReselect: false,
+    pendingCurseTargets: [],
+    curseTargetMethod: null,
+    curseTargetRoll: null,
   });
 }
 

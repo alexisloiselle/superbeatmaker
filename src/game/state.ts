@@ -54,6 +54,9 @@ export function createInitialState(mode: GameMode, manualTrackType: boolean): Ga
     curseTargetTrackIndex: null,
     timerEndTime: null,
     pendingTrackTypeReselect: false,
+    pendingCurseTargets: [],
+    curseTargetMethod: null,
+    curseTargetRoll: null,
   };
 }
 

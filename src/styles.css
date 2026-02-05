@@ -208,6 +208,25 @@ select {
   gap: 0.25rem;
 }
 
+.track-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.track-select-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  text-align: left;
+  padding: 0.75rem;
+}
+
+.track-select-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
 .roll-result {
   text-align: center;
   padding: 1rem;
