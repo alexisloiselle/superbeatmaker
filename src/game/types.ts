@@ -66,3 +66,41 @@ export interface GameState {
 export type PowerUpType = 'redirect' | 'lock' | 'painshift' | 'split' | 'breath';
 
 export type RangeTable = [number, number, string][];
+
+// Mechanics for data-driven game rules
+
+export type RoomOneRule = 'reroll' | 'no-mutation';
+
+export interface MutationMechanics {
+  rollTwice?: boolean;
+  roomOneRule?: RoomOneRule;
+  noEffect?: boolean;
+  takeCurseInstead?: boolean;
+}
+
+export interface MutationEntry {
+  text: string;
+  mechanics?: MutationMechanics;
+}
+
+export interface TargetCurseMechanics {
+  forceRoom?: boolean;
+  deleteTrack?: boolean;
+  rerollTwice?: boolean;
+  applyLastCurse?: boolean;
+}
+
+export interface TargetCurseEntry {
+  text: string;
+  mechanics?: TargetCurseMechanics;
+}
+
+export interface MixCurseMechanics {
+  isLastRoom?: boolean;
+  rollTargetCurses?: number;
+}
+
+export interface MixCurseEntry {
+  text: string;
+  mechanics?: MixCurseMechanics;
+}

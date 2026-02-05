@@ -1,4 +1,4 @@
-import type { RangeTable, Curse, Mutation } from './types';
+import type { RangeTable, Curse, Mutation, MutationEntry, TargetCurseEntry, MixCurseEntry } from './types';
 import { TRACK_TYPES, MUTATIONS, TARGET_CURSES, MIX_CURSES } from './data';
 import { getState, updateState, addLogEntry, createTrack } from './state';
 
@@ -13,7 +13,7 @@ export function getFromTable(rollValue: number, table: RangeTable): string {
   return table[table.length - 1][2];
 }
 
-function getFromRecord(rollValue: number, record: Record<number, string>, fallback: string): string {
+function getFromRecord<T>(rollValue: number, record: Record<number, T>): T {
   const keys = Object.keys(record).map(Number).sort((a, b) => a - b);
   for (let i = 0; i < keys.length; i++) {
     const nextKey = keys[i + 1] || 101;
@@ -21,19 +21,24 @@ function getFromRecord(rollValue: number, record: Record<number, string>, fallba
       return record[keys[i]];
     }
   }
-  return fallback;
+  return record[keys[keys.length - 1]];
 }
 
+export function getMutationEntry(rollValue: number): MutationEntry {
+  return getFromRecord(rollValue, MUTATIONS);
+}
+
+export function getTargetCurseEntry(rollValue: number): TargetCurseEntry {
+  return getFromRecord(rollValue, TARGET_CURSES);
+}
+
+export function getMixCurseEntry(rollValue: number): MixCurseEntry {
+  return getFromRecord(rollValue, MIX_CURSES);
+}
+
+// Legacy helpers for seeded mode
 export function getMutation(rollValue: number): string {
-  return getFromRecord(rollValue, MUTATIONS, 'No Mutation.');
-}
-
-export function getTargetCurse(rollValue: number): string {
-  return getFromRecord(rollValue, TARGET_CURSES, TARGET_CURSES[97]);
-}
-
-export function getMixCurse(rollValue: number): string {
-  return getFromRecord(rollValue, MIX_CURSES, MIX_CURSES[92]);
+  return getMutationEntry(rollValue).text;
 }
 
 export function rollTrackType(): void {
@@ -110,17 +115,10 @@ function rollTargetCurse(): void {
   if (!state) return;
 
   const curseRoll = roll();
-  let effect = getTargetCurse(curseRoll);
+  const entry = getTargetCurseEntry(curseRoll);
 
-  // Hard mode: re-roll no-effect curses
-  if (state.mode === 'hard' && effect.includes('ignore')) {
-    const reroll = roll();
-    effect = getTargetCurse(reroll);
-    addLogEntry(`Hard Mode re-roll: ${reroll}`);
-  }
-
-  const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect };
-  addLogEntry(`Target Curse Roll: ${curseRoll} → ${effect}`);
+  const curse: Curse = { type: 'Target Curse', roll: curseRoll, effect: entry.text };
+  addLogEntry(`Target Curse Roll: ${curseRoll} → ${entry.text}`);
   updateState({ currentCurse: curse, phase: 'curse-result' });
 }
 
@@ -129,22 +127,22 @@ function rollMixCurse(): void {
   if (!state) return;
 
   let curseRoll = roll();
-  let effect = getMixCurse(curseRoll);
+  let entry = getMixCurseEntry(curseRoll);
 
   // Re-roll "last room" if room 1 or 2
-  if (effect.includes('last Room') && state.room <= 2) {
+  if (entry.mechanics?.isLastRoom && state.room <= 2) {
     curseRoll = roll();
-    effect = getMixCurse(curseRoll);
+    entry = getMixCurseEntry(curseRoll);
     addLogEntry('Re-rolling Mix Curse (Room 1/2)');
   }
 
-  const curse: Curse = { type: 'Mix Curse', roll: curseRoll, effect };
-  addLogEntry(`Mix Curse Roll: ${curseRoll} → ${effect}`);
+  const curse: Curse = { type: 'Mix Curse', roll: curseRoll, effect: entry.text };
+  addLogEntry(`Mix Curse Roll: ${curseRoll} → ${entry.text}`);
 
   updateState({
     currentCurse: curse,
     phase: 'curse-result',
-    isLastRoom: effect.includes('last Room') ? true : state.isLastRoom,
+    isLastRoom: entry.mechanics?.isLastRoom ? true : state.isLastRoom,
   });
 }
 
@@ -152,12 +150,19 @@ export function acceptCurse(): void {
   const state = getState();
   if (!state?.currentCurse) return;
 
+  // Find the curse entry to check mechanics
+  const curseEntry = state.currentCurse.type === 'Target Curse'
+    ? getTargetCurseEntry(state.currentCurse.roll)
+    : getMixCurseEntry(state.currentCurse.roll);
+
   const curses = [...state.curses, state.currentCurse];
   let tracks = [...state.tracks];
   let currentTrack = state.currentTrack ? { ...state.currentTrack } : null;
   let forcedRooms = state.forcedRooms;
 
   if (state.currentCurse.type === 'Target Curse') {
+    const targetEntry = curseEntry as TargetCurseEntry;
+    
     if (state.roomLockTrack !== null && tracks.length > 0) {
       addLogEntry('Room Lock prevented curse on protected track');
     } else if (tracks.length > 0) {
@@ -165,17 +170,22 @@ export function acceptCurse(): void {
       tracks[targetIdx] = {
         ...tracks[targetIdx],
         curses: [...tracks[targetIdx].curses, state.currentCurse.effect],
-        deleted: state.currentCurse.effect.includes('Delete Track') ? true : tracks[targetIdx].deleted,
+        deleted: targetEntry.mechanics?.deleteTrack ? true : tracks[targetIdx].deleted,
       };
     }
     if (currentTrack) {
       currentTrack.curses = [...currentTrack.curses, state.currentCurse.effect];
     }
-  }
-
-  if (state.currentCurse.effect.includes('Force a Room') || 
-      state.currentCurse.effect.includes('force another Room')) {
-    forcedRooms++;
+    
+    if (targetEntry.mechanics?.forceRoom) {
+      forcedRooms++;
+    }
+  } else {
+    const mixEntry = curseEntry as MixCurseEntry;
+    if (mixEntry.mechanics?.rollTargetCurses) {
+      // TODO: Handle rolling multiple target curses
+      addLogEntry(`Rolling ${mixEntry.mechanics.rollTargetCurses} Target Curses`);
+    }
   }
 
   updateState({
@@ -189,37 +199,51 @@ export function acceptCurse(): void {
 }
 
 function rollSingleMutation(mode: string, room: number): string {
-  let r = roll();
-  let effect = getMutation(r);
+  const r = roll();
+  let entry = getMutationEntry(r);
 
   // Casual mode: re-roll 90-100
   if (mode === 'casual' && r >= 90) {
-    r = roll(89);
-    effect = getMutation(r);
+    const newRoll = roll(89);
+    entry = getMutationEntry(newRoll);
     addLogEntry('Casual Mode: Re-rolling high mutation');
   }
 
   // Hard mode: re-roll no-effect mutations
-  if (mode === 'hard' && effect.includes('No Mutation')) {
-    r = roll();
-    effect = getMutation(r);
+  if (mode === 'hard' && entry.mechanics?.noEffect) {
+    const newRoll = roll();
+    entry = getMutationEntry(newRoll);
     addLogEntry('Hard Mode: Re-rolling no-effect mutation');
   }
 
-  // Handle special mutations
-  if (effect.includes('Room One') && room === 1) {
-    return 'No Mutation.';
+  // Handle room one rules
+  if (entry.mechanics?.roomOneRule && room === 1) {
+    if (entry.mechanics.roomOneRule === 'reroll') {
+      addLogEntry('Room 1: Re-rolling mutation');
+      return rollSingleMutation(mode, room);
+    }
+    if (entry.mechanics.roomOneRule === 'no-mutation') {
+      addLogEntry('Room 1: No mutation');
+      return 'No Mutation.';
+    }
   }
 
   // Recursive handling of "Roll twice"
-  if (effect.includes('Roll twice')) {
+  if (entry.mechanics?.rollTwice) {
+    addLogEntry('Rolling twice for mutations');
     const effect1 = rollSingleMutation(mode, room);
     const effect2 = rollSingleMutation(mode, room);
     return `[${effect1}] AND [${effect2}]`;
   }
 
-  addLogEntry(`Mutation Roll: ${r} → ${effect}`);
-  return effect;
+  // Handle "Take Curse Instead"
+  if (entry.mechanics?.takeCurseInstead) {
+    addLogEntry('Mutation: Taking a Target Curse instead');
+    // This will be handled in the UI by transitioning to curse
+  }
+
+  addLogEntry(`Mutation Roll: ${r} → ${entry.text}`);
+  return entry.text;
 }
 
 export function rollMutation(): void {
@@ -241,7 +265,12 @@ export function acceptMutation(): void {
   if (!state?.currentMutation || !state.currentTrack) return;
 
   const currentTrack = { ...state.currentTrack };
-  if (!state.currentMutation.effect.includes('No Mutation')) {
+  
+  // Check if this is a no-effect mutation
+  const isNoEffect = state.currentMutation.effect === 'No Mutation.' || 
+                     state.currentMutation.effect.startsWith('No Mutation');
+  
+  if (!isNoEffect) {
     currentTrack.mutation = state.currentMutation.effect;
   }
 
